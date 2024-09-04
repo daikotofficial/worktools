@@ -4,3 +4,16 @@ __pycache__/
 *.env
 /backend/newenv/
 /frontend/node_modules/
+
+*.pyc
+__pycache__/
+env/
+*.env
+
+# Node
+node_modules/
+build/
+
+# Others
+.DS_Store
+*.log
