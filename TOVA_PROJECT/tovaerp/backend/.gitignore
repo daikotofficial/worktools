@@ -1,0 +1,6 @@
+newenv/
+*.pyc
+__pycache__/
+*.env
+/backend/newenv/
+/frontend/node_modules/
