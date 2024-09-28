@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Confirmation</title>
+  </head>
+  <body>
+    <p>Hi {{ user.username }},</p>
+    <p>
+      Thank you for registering on our site! Please click the link below to
+      confirm your email address:
+    </p>
+    <a href="{{ protocol }}://{{ domain }}/verify-email/{{ uid }}/{{ token }}/"
+      >Confirm your email address</a
+    >
+  </body>
+</html>

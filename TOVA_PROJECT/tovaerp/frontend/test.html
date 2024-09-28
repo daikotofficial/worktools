@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard with Color Palette</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: #f5f5f5; /* Very Light Grey background for the whole page */
+        margin: 0;
+        padding: 0;
+        color: #333333; /* Dark Charcoal Grey for text */
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+      }
+      header {
+        background-color: #40a829; /* Vibrant Green */
+        color: #ffffff;
+        padding: 20px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1000;
+      }
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        position: relative;
+      }
+      .logo-tova {
+        position: absolute;
+        left: 20px;
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .header-title {
+        font-size: 20px;
+        font-weight: 400;
+        margin: 0;
+        text-align: center;
+      }
+      .header-actions {
+        position: absolute;
+        right: 20px;
+        display: flex;
+        align-items: center;
+      }
+      .header-notifications {
+        position: relative;
+        margin-left: 20px;
+      }
+      .notification-icon {
+        font-size: 24px;
+        cursor: pointer;
+      }
+      .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background-color: #f00;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 60px;
+        right: 0;
+        background-color: #ffffff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        width: 200px;
+        z-index: 1000;
+      }
+      .dropdown-menu a {
+        display: block;
+        padding: 10px;
+        color: #333;
+        text-decoration: none;
+        border-bottom: 1px solid #ddd;
+      }
+      .dropdown-menu a:last-child {
+        border-bottom: none;
+      }
+      .dropdown-menu a:hover {
+        background-color: #f5f5f5;
+      }
+      .dropdown-button:hover + .dropdown-menu {
+        display: block;
+      }
+      nav {
+        background-color: #000000; /* Black */
+        color: #ffffff;
+        padding: 10px;
+        text-align: center;
+        width: 100%;
+        position: sticky;
+        top: 60px; /* Below the header */
+        z-index: 1000;
+      }
+      nav a {
+        color: #ffffff;
+        text-decoration: none;
+        padding: 0 15px;
+        font-weight: 600;
+      }
+      nav a:hover {
+        color: #d0d0d0; /* Light Grey for hover effect */
+      }
+      .container {
+        display: flex;
+        margin: 20px;
+        width: 100%;
+        overflow-x: auto; /* Allows horizontal scrolling if needed */
+      }
+      .sidebar {
+        width: 20%;
+        background-color: #000000; /* Black */
+        color: #ffffff;
+        padding: 20px;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 80px; /* Below the header and nav */
+        height: calc(
+          100vh - 80px
+        ); /* Full viewport height minus header and nav */
+        overflow-y: auto; /* Scroll if content overflows */
+      }
+      .sidebar h2 {
+        color: #40a829; /* Vibrant Green */
+      }
+      .main-content {
+        width: 80%;
+        padding: 20px;
+        overflow: hidden; /* Prevents content from overflowing */
+      }
+      .tiles-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* 3 columns */
+        grid-gap: 10px; /* Space between tiles */
+        max-width: 100%; /* Adjust to container size */
+        margin: 0 auto; /* Center the grid */
+      }
+      .card {
+        background-color: #ffffff; /* White background */
+        border: 1px solid #d0d0d0; /* Light Grey border */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        transition: transform 0.3s ease;
+        aspect-ratio: 1 / 1; /* Make the card square */
+        padding: 10px;
+        max-width: 120px; /* Adjust the size of the card */
+        max-height: 120px; /* Ensure height matches width */
+      }
+      .card:hover {
+        transform: scale(1.05); /* Swell-up effect on hover */
+      }
+      .card img {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 10px;
+      }
+      .card h3 {
+        color: #40a829; /* Vibrant Green */
+        margin: 5px 0;
+        font-size: 14px; /* Adjust font size */
+      }
+      .button {
+        background-color: #40a829; /* Vibrant Green */
+        color: #ffffff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        font-weight: 600;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+      .button:hover {
+        background-color: #2e8b21; /* Darker Green on hover */
+      }
+      footer {
+        background-color: #40a829; /* Vibrant Green */
+        color: #ffffff;
+        text-align: center;
+        padding: 15px;
+        position: relative;
+        bottom: 0;
+        width: 100%;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-content">
+        <div class="logo-tova">Tova</div>
+        <div class="header-title">Your Best Asset Manager System</div>
+        <div class="header-actions">
+          <div class="header-notifications">
+            <div class="notification-icon">🔔</div>
+            <div class="notification-badge">3</div>
+            <!-- Change the number according to unread notifications -->
+          </div>
+          <div class="dropdown">
+            <div class="dropdown-button">Company Logo</div>
+            <div class="dropdown-menu">
+              <a href="#">Profile</a>
+              <a href="#">Settings</a>
+              <a href="#">Logout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Reports</a>
+      <a href="#">Analytics</a>
+      <a href="#">Settings</a>
+    </nav>
+    <div class="container">
+      <aside class="sidebar">
+        <h2>Sidebar</h2>
+        <p>Links and widgets go here.</p>
+      </aside>
+      <main class="main-content">
+        <div class="tiles-container">
+          <div class="card">
+            <img src="icon1.png" alt="Icon 1" />
+            <h3>Tile 1</h3>
+          </div>
+          <div class="card">
+            <img src="icon2.png" alt="Icon 2" />
+            <h3>Tile 2</h3>
+          </div>
+          <div class="card">
+            <img src="icon3.png" alt="Icon 3" />
+            <h3>Tile 3</h3>
+          </div>
+          <div class="card">
+            <img src="icon4.png" alt="Icon 4" />
+            <h3>Tile 4</h3>
+          </div>
+          <div class="card">
+            <img src="icon5.png" alt="Icon 5" />
+            <h3>Tile 5</h3>
+          </div>
+          <div class="card">
+            <img src="icon6.png" alt="Icon 6" />
+            <h3>Tile 6</h3>
+          </div>
+          <div class="card">
+            <img src="icon7.png" alt="Icon 7" />
+            <h3>Tile 7</h3>
+          </div>
+          <div class="card">
+            <img src="icon8.png" alt="Icon 8" />
+            <h3>Tile 8</h3>
+          </div>
+          <div class="card">
+            <img src="icon9.png" alt="Icon 9" />
+            <h3>Tile 9</h3>
+          </div>
+        </div>
+      </main>
+    </div>
+    <footer>
+      <p>&copy; 2024 Your Company. All rights reserved.</p>
+    </footer>
+  </body>
+</html>

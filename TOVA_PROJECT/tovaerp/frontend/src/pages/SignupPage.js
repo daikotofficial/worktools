@@ -1,8 +1,6 @@
-// src/pages/SignupPage.js
-
 import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import AuthService from "../services/authService"
+import FourEllipsesSpinner from "../components/FourEllipsesSpinner" // Import the new spinner component
 
 const SignupPage = () => {
   const [username, setUsername] = useState("")
@@ -16,7 +14,7 @@ const SignupPage = () => {
   const [sector, setSector] = useState("")
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false) // Add loading state
 
   const handleSignup = async (e) => {
     e.preventDefault()
@@ -24,6 +22,9 @@ const SignupPage = () => {
       setError("Passwords do not match!")
       return
     }
+
+    setLoading(true) // Set loading to true when signup starts
+
     try {
       const formData = new FormData()
       formData.append("username", username)
@@ -44,6 +45,8 @@ const SignupPage = () => {
       }
     } catch (err) {
       setError("Registration failed. Try again.")
+    } finally {
+      setLoading(false) // Set loading to false when request finishes
     }
   }
 
@@ -53,76 +56,81 @@ const SignupPage = () => {
         <h1 className="text-2xl font-bold mb-4">Signup</h1>
         {error && <p className="text-red-500">{error}</p>}
         {message && <p className="text-green-500">{message}</p>}
-        <form onSubmit={handleSignup} encType="multipart/form-data">
-          <input
-            type="text"
-            placeholder="Username"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Company Name"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Phone Number"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Address"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-          <input
-            type="file"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            onChange={(e) => setLogo(e.target.files[0])}
-          />
-          <input
-            type="text"
-            placeholder="Sector/Nature of Service"
-            className="block w-full mb-4 p-2 border border-gray-300 rounded"
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
-          />
-          <button className="w-full bg-green-500 text-white p-2 rounded">
-            Signup
-          </button>
-        </form>
+        {loading ? (
+          <FourEllipsesSpinner /> // Show new spinner when loading
+        ) : (
+          <form onSubmit={handleSignup} encType="multipart/form-data">
+            <input
+              type="text"
+              placeholder="Username"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Company Name"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Phone Number"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Address"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+            <input
+              type="file"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              onChange={(e) => setLogo(e.target.files[0])}
+            />
+            <input
+              type="text"
+              placeholder="Sector/Nature of Service"
+              className="block w-full mb-4 p-2 border border-gray-300 rounded"
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+            />
+            <button className="w-full bg-green-500 text-white p-2 rounded">
+              Signup
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )
 }
 
 export default SignupPage
+
 

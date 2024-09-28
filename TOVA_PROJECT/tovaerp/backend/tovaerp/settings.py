@@ -1,18 +1,17 @@
-# settings.py
-
 import os
 from dotenv import load_dotenv
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
 
 # Load environment variables from the .env file
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = config('DEBUG', default=True, cast=bool)  # Set to True for development
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,tovaerp.com').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,tovaerp.com,daikot.com.ng').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,12 +20,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'djoser',
     'allauth',
-    'anymail',  # Added for Mailgun integration
+    'anymail',  # Added for Postmark integration
     'allauth.account',
     'allauth.socialaccount',
     'dj_rest_auth',
@@ -53,7 +54,7 @@ AUTH_USER_MODEL = 'assets.CustomUser'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,6 +76,21 @@ REST_FRAMEWORK = {
     ],
 }
 
+REST_AUTH_SERIALIZERS = {
+    'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
+}
+
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # This should allow login by either username or email
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000').split(',')
 
 AUTHENTICATION_BACKENDS = (
@@ -87,57 +103,38 @@ ROOT_URLCONF = 'tovaerp.urls'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DATABASE_NAME', 'tova'),
-        'USER': config('DATABASE_USER', 'tova'),
-        'PASSWORD': config('DATABASE_PASSWORD', 'Truce9900##'),
-        'HOST': config('DATABASE_HOST', 'localhost'),
-        'PORT': config('DATABASE_PORT', '5432'),
+        'NAME': config('DATABASE_NAME'),
+        'USER': config('DATABASE_USER'),
+        'PASSWORD': config('DATABASE_PASSWORD'),
+        'HOST': config('DATABASE_HOST'),
+        'PORT': config('DATABASE_PORT',),
     }
 }
 
-REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'assets.serializers.RegisterSerializer',
-}
-
-# Mailgun Email Configuration
-EMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'
+# Postmark Email Backend Settings
+EMAIL_BACKEND = 'anymail.backends.postmark.EmailBackend'
 ANYMAIL = {
-    'MAILGUN_API_KEY': config('MAILGUN_API_KEY'),
-    'MAILGUN_SENDER_DOMAIN': config('MAILGUN_SENDER_DOMAIN'),
+    'POSTMARK_SERVER_TOKEN': '8da930b9-3f30-4ead-9383-123646509294',  # Your Postmark API token
 }
 
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@tovaerp.com')
-EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=60, cast=int)
-
+DEFAULT_FROM_EMAIL = 'noreply@daikot.com.ng'  # Verified sender email
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = BASE_DIR / "media"
 
-
-
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 1
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 2  # Tokens expire after 2 days
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_UNIQUE_EMAIL = True
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
+ACCOUNT_ADAPTER = 'assets.adapters.CustomAccountAdapter'
+SITE_ID = 1
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 6,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+TIME_ZONE = 'Africa/Lagos'
+USE_TZ = True
+
 

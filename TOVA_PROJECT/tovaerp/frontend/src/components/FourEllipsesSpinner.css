@@ -1,0 +1,45 @@
+/* src/components/FourEllipsesSpinner.css */
+.four-ellipses-spinner {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100px; /* Adjust width to your preference */
+  margin: auto;
+}
+
+.four-ellipses-spinner div {
+  width: 15px; 
+  height: 15px;
+  border-radius: 50%;
+  background-color: #333;
+  display: inline-block;
+  margin: 0 5px;
+}
+
+/* Scaling animation for the 1st and 3rd ellipses */
+.scaling {
+  animation: scaling 1.2s infinite ease-in-out;
+}
+
+@keyframes scaling {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.5); /* Shrink to half its size */
+  }
+}
+
+/* Growing animation for the 2nd and 4th ellipses */
+.growing {
+  animation: growing 1.2s infinite ease-in-out;
+}
+
+@keyframes growing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5); /* Grow to 1.5x its size */
+  }
+}

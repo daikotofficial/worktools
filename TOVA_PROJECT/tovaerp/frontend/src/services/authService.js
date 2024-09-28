@@ -1,5 +1,3 @@
-// src/services/authService.js
-
 import axiosInstance from "./axiosInstance"
 
 const authService = {
@@ -11,18 +9,15 @@ const authService = {
         "Registration error:",
         error.response ? error.response.data : error.message
       )
-      throw error // Re-throw to handle in the component
+      throw error
     }
   },
   login: async (email, password) => {
     try {
       const response = await axiosInstance.post("auth/login/", {
-        email,
+        email, // or 'username', depending on your backend setup
         password,
       })
-      if (!response.data.is_active) {
-        throw new Error("Email not verified. Please check your inbox.")
-      }
       return response
     } catch (error) {
       console.error(
@@ -35,4 +30,5 @@ const authService = {
 }
 
 export default authService
+
 

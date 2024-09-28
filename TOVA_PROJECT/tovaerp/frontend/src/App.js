@@ -1,59 +1,30 @@
 // src/App.js
-
-import React from "react"
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom"
-import LoginPage from "./pages/LoginPage"
-import SignupPage from "./pages/SignupPage"
-import Dashboard from "./pages/Dashboard"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import Sidebar from "./components/Sidebar"
 import AddAssetPage from "./pages/AddAssetPage"
-import InventoryPage from "./pages/InventoryPage"
 import AssignUserPage from "./pages/AssignUserPage"
-import WelcomePage from "./pages/WelcomePage"
-import PrivateRoute from "./components/PrivateRoute"
+import Dashboard from "./pages/Dashboard"
+import InventoryPage from "./pages/InventoryPage"
+import "./styles.css" // Import the central CSS
 
-function App() {
+const App = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/add-asset"
-          element={
-            <PrivateRoute>
-              <AddAssetPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/inventory"
-          element={
-            <PrivateRoute>
-              <InventoryPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/assign-user"
-          element={
-            <PrivateRoute>
-              <AssignUserPage />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
+      <div className="app-container">
+        <Sidebar />
+        <div className="main-content">
+          <Routes>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/add-asset" element={<AddAssetPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/assign-user" element={<AssignUserPage />} />
+          </Routes>
+        </div>
+      </div>
     </Router>
   )
 }
 
 export default App
+
 

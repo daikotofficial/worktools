@@ -1,3 +1,4 @@
+// src/pages/AssignUserPage.js
 import React, { useState } from "react"
 import axios from "axios"
 
@@ -42,10 +43,9 @@ const AssignUserPage = () => {
           type="text"
           name="fullName"
           placeholder="Full Name"
-          className="block w-full mb-4 p-2 border border-gray-300 rounded"
           onChange={handleChange}
         />
-        {/* Add more input fields here */}
+        {/* Additional input fields */}
         <button className="bg-green-500 text-white p-2 rounded">
           Assign User
         </button>
@@ -55,4 +55,5 @@ const AssignUserPage = () => {
 }
 
 export default AssignUserPage
+
 

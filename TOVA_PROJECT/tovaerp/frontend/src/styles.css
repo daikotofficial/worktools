@@ -1,0 +1,691 @@
+/* Import the font */
+@import url("https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap");
+
+/* Font Classes */
+.pt-sans-narrow-regular {
+  font-family: "PT Sans Narrow", sans-serif;
+  font-weight: 400;
+}
+
+.pt-sans-narrow-bold {
+  font-family: "PT Sans Narrow", sans-serif;
+  font-weight: 700;
+}
+
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f4f2ef; /* Light background */
+  color: #272525; /* Dark text */
+  font-family: "PT Sans Narrow", sans-serif;
+  min-height: 100vh; /* Ensure body spans the full height of the viewport */
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* SIDEBAR STYLE */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #202020;
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollable section */
+.sidebar-content {
+  flex-grow: 1; /* Take up remaining space */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+/* Custom Scrollbar */
+.sidebar-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background-color: #f4f2ef; /* Thumb color */
+  border-radius: 10px; /* Rounded edges for the thumb */
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background-color: #202020; /* Background of the scrollbar track */
+}
+
+/* Logo Section */
+.logo-container {
+  width: 100%;
+  background-color: #fff;
+  text-align: center;
+  padding: 0;
+  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  width: 25%; /* Adjusted smaller logo */
+  height: auto;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+/* Sidebar Menu */
+.sidebar-menu {
+  list-style-type: none;
+  padding: 0;
+  margin-top: 0;
+}
+
+.menu-item {
+  padding: 0; /* Remove padding from li */
+  display: flex;
+}
+
+.menu-item a {
+  text-decoration: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 15px; /* Move padding inside the a tag */
+  transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.menu-item svg {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.menu-item span {
+  display: inline;
+}
+
+/* Hover Effect */
+.menu-item:hover {
+  background-color: #f4f2ef; /* Hover background color for full li */
+}
+
+.menu-item:hover a {
+  color: #e68c3a; /* Hover text color */
+}
+
+.menu-item:hover svg {
+  color: #e68c3a; /* Also apply hover color to icons */
+}
+
+/* HEADER STYLE */
+header.top-nav {
+  background-color: #336021; /* Dark charcoal header */
+  padding: 10px 20px;
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+  z-index: 100;
+}
+
+header .search-bar {
+  width: 300px;
+}
+
+header .search-bar input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  background-color: #f4f2ef; /* Light background for input */
+  border: none;
+  color: #272525; /* Dark text */
+}
+
+header .search-bar input::placeholder {
+  color: #888;
+}
+
+header .top-nav-right {
+  display: flex;
+  align-items: center;
+}
+
+header .top-nav-right .profile-dropdown {
+  position: relative;
+  margin-left: 20px;
+}
+
+header .top-nav-right .profile-dropdown img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #e68c3a; /* Orange border for profile image */
+}
+
+header .top-nav-right .profile-dropdown .dropdown-content {
+  display: none;
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background-color: #336021; /* Deep green for dropdown */
+  border-radius: 8px;
+  padding: 10px;
+  width: 150px;
+}
+
+header .top-nav-right .profile-dropdown:hover .dropdown-content {
+  display: block;
+}
+
+header .top-nav-right .profile-dropdown .dropdown-content a {
+  padding: 10px;
+  color: #f4f2ef; /* Light text in dropdown */
+  display: block;
+}
+
+header .top-nav-right .profile-dropdown .dropdown-content a:hover {
+  background-color: #e68c3a; /* Orange hover */
+}
+
+header .top-nav-right .notification-count {
+  background-color: #e68c3a; /* Orange notification badge */
+  border-radius: 50%;
+  padding: 5px;
+  font-size: 12px;
+  color: #fff;
+  margin-left: -10px;
+  margin-top: -10px;
+  position: absolute;
+}
+
+/* DASHBOARD STYLE */
+.dashboard-container {
+  margin-left: 240px;
+  padding: 80px 30px 30px;
+  min-height: 100vh; /* Full height of the viewport */
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  flex-grow: 1; /* Content expands to fill available space */
+}
+
+/* Stats Cards */
+.stats-cards {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.stats-card {
+  background-color: #336021; /* Deep green for stat cards */
+  padding: 20px;
+  border-radius: 10px;
+  width: 23%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.stats-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #f4f2ef; /* Light text */
+}
+
+.stats-card p {
+  font-size: 24px;
+  font-weight: bold;
+  color: #f4f2ef; /* Light text */
+}
+
+.stats-card span {
+  font-size: 12px;
+  color: #bbb;
+}
+
+/* Graphs Section */
+.graphs-section {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.graph-card {
+  background-color: #272525; /* Dark background for graphs */
+  padding: 20px;
+  border-radius: 10px;
+  width: 48%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.graph-card h3 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #f4f2ef; /* Light text */
+}
+
+.graph-placeholder {
+  background-color: #336021; /* Deep green */
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #888;
+  border-radius: 8px;
+}
+
+/* FOOTER STYLE */
+
+/* Main section (content between header and footer) */
+.main-section {
+  flex-grow: 1; /* Content will grow to fill available space */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dashboard content section */
+.dashboard-content {
+  flex-grow: 1; /* Content expands to take available space */
+}
+
+/* Footer should always stick to the bottom */
+.dashboard-footer {
+  background-color: #336021; /* Deep green footer */
+  padding: 20px;
+  text-align: center;
+  color: #f4f2ef; /* Light text */
+  font-size: 14px;
+  margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+/* Footer links styling */
+.dashboard-footer .footer-links a {
+  margin: 0 10px;
+  color: #e68c3a; /* Orange footer links */
+}
+
+.dashboard-footer .footer-links a:hover {
+  color: #f4f2ef; /* Light hover effect */
+}
+
+/* ADD ASSET STYLE */
+.form-container {
+  margin-left: 240px;
+  padding: 80px 30px 30px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid for form fields */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+/* Individual form group styling */
+.form-group {
+  margin-bottom: 15px;
+}
+
+/* Input, select, and button styling */
+form input,
+form select,
+form button,
+.react-datepicker__input-container input {
+  width: 100%;
+  height: 45px;
+  padding: 5px;
+  font-size: 1rem; /* Same as form label */
+  font-family: "PT Sans Narrow", sans-serif; /* Match the font */
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Focus styles for inputs */
+form input:focus,
+form select:focus,
+.react-datepicker__input-container input:focus {
+  box-shadow: 0px 0px 6px rgba(241, 137, 39, 0.6);
+  outline: none;
+}
+
+/* Custom dropdown styling */
+form select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 10px;
+  font-size: 1rem;
+  font-family: "PT Sans Narrow", sans-serif;
+  border-radius: 8px;
+  background-image: url("data:image/svg+xml;base64,..."); /* Optional: Add custom arrow */
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Dropdown open state styling */
+form select:focus {
+  border-color: #e68c3a; /* Orange border on focus */
+  box-shadow: 0px 0px 6px rgba(230, 140, 58, 0.6); /* Orange shadow on focus */
+}
+
+/* Custom hover effect for dropdown options */
+form select option:hover {
+  background-color: #e68c3a; /* Custom hover background color for options */
+  color: black; /* Text color on hover */
+}
+
+/* Label styling */
+form label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 5px;
+  font-family: "PT Sans Narrow", sans-serif;
+}
+
+/* Optional: Style the dropdown arrow */
+form select {
+  position: relative;
+  background-color: white;
+}
+
+/* Add custom arrow styling for the select dropdown (optional) */
+form select:after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* Additional styling for select field focus and hover */
+form select:hover {
+  border-color: #e68c3a;
+}
+
+/* Button styling */
+.add-asset-btn {
+  background-color: #336021; /* Darker green base color */
+  color: white;
+  font-size: 16px;
+  padding: 12px 24px; /* Adjust padding for balanced button size */
+  border: none;
+  margin-top: 5%;
+  margin-left: auto;
+  margin-right: auto;
+  display: block; /* Ensures it's treated as a block-level element */
+  border-radius: 8px; /* Rounded corners for modern look */
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  width: 20%; /* Full width button */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Light shadow */
+  text-align: center;
+}
+
+.add-asset-btn:hover {
+  background-color: #e68c3a; /* Brighter green on hover */
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.15); /* Stronger shadow on hover */
+}
+
+.add-asset-btn:focus {
+  outline: none; /* Remove default focus outline */
+  box-shadow: 0px 0px 8px rgba(40, 167, 69, 0.6); /* Green focus shadow */
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999; /* Ensure it's above everything */
+}
+
+/* Modal content styling */
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* On top of the overlay */
+  display: flex;
+  flex-direction: column; /* Stack items vertically */
+}
+
+/* Input styling for modal */
+.modal-content input {
+  width: 100%;
+  height: 45px;
+  padding: 10px;
+  font-size: 1rem;
+  font-family: "PT Sans Narrow", sans-serif;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px; /* Space between inputs */
+}
+
+/* Add button styling */
+.modal-content button {
+  background-color: #336021;
+  color: #fff;
+  font-size: 16px;
+  padding: 12px 24px; /* Make the button more standard size */
+  border: none;
+  border-radius: 8px; /* Rounded edges */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: center; /* Center the button */
+}
+
+.modal-content button:hover {
+  background-color: #e68c3a;
+}
+
+/* Button hover effect */
+.modal-content button:focus {
+  outline: none;
+}
+
+/* Responsive for smaller devices */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 90%; /* Take more space on smaller screens */
+  }
+}
+
+/* ASSET INVENTORY STYLE */
+.inventory-container {
+  margin-left: 240px; /* Matches the sidebar width */
+  padding: 50px 20px; /* Reduced padding to fit more content */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f4f4f4;
+  transform: scale(0.95); /* Slight zoom-out effect */
+  transform-origin: top left; /* Keep scaling from top-left corner */
+}
+
+/* Header */
+h1 {
+  font-size: 28px; /* Slightly smaller heading */
+  color: #336021; /* Deep green heading */
+  margin-bottom: 15px; /* Reduced margin for more space */
+  text-align: center;
+}
+
+/* Filters section */
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+  justify-content: center; /* Center the filter fields */
+}
+
+.filter-container input {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  width: 100%;
+  max-width: 180px; /* Reduced width */
+}
+
+button {
+  background-color: #336021;
+  color: white;
+  padding: 8px 15px; /* Slightly smaller buttons */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #2a4f19;
+}
+
+button.ml-2 {
+  margin-left: 10px;
+}
+
+button.bg-red-500:hover {
+  background-color: #b50000;
+}
+
+/* Table section */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px; /* Reduced margin to fit more */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 10px; /* Slightly smaller padding */
+  text-align: center;
+}
+
+thead th {
+  background-color: #336021;
+  color: white;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #f4f4f4;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+tbody tr:hover {
+  background-color: #d0d0d0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.pagination button {
+  background-color: #336021;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  margin: 0 5px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.pagination button:hover {
+  background-color: #2a4f19;
+}
+
+.pagination button.bg-white {
+  background-color: white;
+  color: #336021;
+  border: 1px solid #336021;
+}
+
+/* Export buttons */
+.export-buttons {
+  display: flex;
+  justify-content: center; /* Center the export buttons */
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+button.bg-blue-500 {
+  background-color: #0073e6;
+}
+
+button.bg-blue-400 {
+  background-color: #3498db;
+}
+
+button.bg-yellow-500 {
+  background-color: #f39c12;
+}
+
+button.bg-blue-500:hover,
+button.bg-blue-400:hover,
+button.bg-yellow-500:hover {
+  opacity: 0.9;
+}
+
+/* Sidebar fix */
+.dashboard-container {
+  margin-left: 240px; /* Sidebar width */
+  padding: 50px 20px; /* Reduced padding */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure no overlap with sidebar */
+table,
+.export-buttons,
+.filter-container {
+  max-width: calc(100% - 240px); /* Adjust to not overlap with sidebar */
+  overflow-x: auto;
+}
