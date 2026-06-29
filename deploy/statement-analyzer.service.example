@@ -1,0 +1,16 @@
+[Unit]
+Description=Daikot Worktools FastAPI app
+After=network.target
+
+[Service]
+User=statement-analyzer
+Group=www-data
+WorkingDirectory=/opt/statement-analyzer
+Environment=PYTHONPATH=/opt/statement-analyzer/src
+Environment=STATEMENT_ANALYZER_RUNTIME_DIR=/var/lib/statement-analyzer
+ExecStart=/opt/statement-analyzer/.venv/bin/python -m uvicorn statement_analyzer.webapp:app --host 127.0.0.1 --port 8011
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

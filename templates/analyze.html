@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+
+{% block title %}{% if training_mode %}Train Model{% else %}Statement Analysis{% endif %} | Daikot Worktools{% endblock %}
+{% block meta_description %}{% if training_mode %}Train Daikot Worktools to recognize an unfamiliar statement layout.{% else %}Analyze PDF bank statements, review exceptions, and export clean Excel workbooks in Daikot Worktools.{% endif %}{% endblock %}
+
+{% block content %}
+      <section class="workspace-shell {% if training_mode %}training-workspace{% endif %}" id="upload-workspace">
+        <div class="workspace-copy">
+          <p class="eyebrow">{% if training_mode %}Train Model{% else %}Statement Analysis{% endif %}</p>
+          <h1>{% if training_mode %}Train a new layout.{% else %}Analyze a statement.{% endif %}</h1>
+          <p class="lead workspace-lead">
+            {% if training_mode %}
+            Upload a sample and save the layout.
+            {% else %}
+            Upload, review, and download Excel.
+            {% endif %}
+          </p>
+          <div class="workspace-steps">
+            {% if training_mode %}
+            <span>Name</span>
+            <span>Upload</span>
+            <span>Approve</span>
+            {% else %}
+            <span>PDF</span>
+            <span>Review</span>
+            <span>Excel</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="workspace-panel">
+          {% if training_mode %}
+          <form class="upload-card train-card" action="/train-analyzer" method="post" enctype="multipart/form-data" id="train-form">
+            <label class="review-search">
+              <span class="field-label">Model / Layout Name</span>
+              <input name="training_bank_name" type="text" value="{{ training_bank_name or '' }}" placeholder="Example: Ascend Statement" required />
+            </label>
+            <label class="upload-zone compact-upload-zone" for="training-statement">
+              <input id="training-statement" name="statement" type="file" accept="application/pdf,.pdf" required data-file-input data-file-label-target="training-file-label" />
+              <span class="upload-kicker">Unknown layout PDF</span>
+              <strong id="training-file-label">Choose a statement sample</strong>
+              <small>For unsupported text-based PDFs.</small>
+            </label>
+            <label class="review-search upload-password">
+              <span class="field-label">PDF Password</span>
+              <input name="pdf_password" type="password" placeholder="Optional, only if the statement is protected" />
+            </label>
+            <button class="primary-btn" type="submit" id="train-btn">Train Model</button>
+            {% if filename %}
+            <p class="meta-line">Last file: <span>{{ filename }}</span></p>
+            {% endif %}
+            {% if error %}
+            <p class="error-line">{{ error }}</p>
+            {% endif %}
+          </form>
+          {% else %}
+          <form class="upload-card" action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
+            <label class="upload-zone" for="statement">
+              <input id="statement" name="statement" type="file" accept="application/pdf,.pdf" required data-file-input data-file-label-target="file-label" />
+              <span class="upload-kicker">Upload statement PDF</span>
+              <strong id="file-label">Drag and drop, or click to choose a file</strong>
+              <small>Use a text-based PDF for best results.</small>
+            </label>
+            <label class="review-search upload-password">
+              <span class="field-label">PDF Password</span>
+              <input name="pdf_password" type="password" placeholder="Optional, only if the statement is protected" />
+            </label>
+            <button class="primary-btn" type="submit" id="analyze-btn">Analyze Statement</button>
+            {% if filename %}
+            <p class="meta-line">Last file: <span>{{ filename }}</span></p>
+            {% endif %}
+            {% if error %}
+            <p class="error-line">{{ error }}</p>
+            {% endif %}
+          </form>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if active_job_id and not summary %}
+      <section class="panel-card job-card">
+        <div class="panel-head">
+          <h3>
+            {% if active_job_kind == 'approval' %}
+            Applying Corrections
+            {% elif active_job_kind == 'training' %}
+            Training Layout
+            {% elif active_job_kind == 'adaptive-approval' %}
+            Finishing Adaptive Parse
+            {% else %}
+            Analysis Running
+            {% endif %}
+          </h3>
+          <p>
+            {% if active_job_kind == 'approval' %}
+            Your approvals are being applied in the background so the browser request does not have to stay open.
+            {% elif active_job_kind == 'training' %}
+            The uploaded statement is being parsed as an unknown layout and will be saved for future matching after validation.
+            {% elif active_job_kind == 'adaptive-approval' %}
+            Your approval is being applied to the adaptive parser so the workbook can be generated without keeping this request open.
+            {% else %}
+            Your statement is being processed in the background. This is safer for large PDFs and long-running bank statements.
+            {% endif %}
+          </p>
+        </div>
+        <div
+          class="job-status"
+          data-job-status="{{ active_job_id }}"
+          data-result-url="/result/{{ active_job_id }}"
+        >
+          <strong>Status: {{ active_job_status or 'queued' }}</strong>
+          <p class="meta-line">You can leave this page open while we keep checking for completion.</p>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if adaptive_review %}
+      <section class="results-section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Adaptive Review Needed</p>
+            <h2>We found a likely transaction table, but paused for safety.</h2>
+            <p class="subtle-line">
+              <span>{{ adaptive_review.page_count }} pages</span>
+              <span>Parser {{ adaptive_review.parser_name }}</span>
+              <span>Confidence {{ "{:.0%}".format(adaptive_review.confidence) }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card accent-parser">
+            <span>Detected Columns</span>
+            <strong>{{ adaptive_review.detected_columns|length }}</strong>
+            <small>
+              {% for column in adaptive_review.detected_columns %}
+              {{ column.label }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </small>
+          </article>
+          <article class="stat-card accent-check">
+            <span>Preview Rows</span>
+            <strong>{{ adaptive_review.preview_rows|length }}</strong>
+            <small>First extracted rows shown below before workbook generation.</small>
+          </article>
+        </div>
+
+        <section class="panel-card recon-card">
+          <div class="panel-head">
+            <h3>Why It Paused</h3>
+            <p>The adaptive parser is refusing to continue automatically because one or more confidence checks were weak.</p>
+          </div>
+          <div class="coverage-list">
+            {% for reason in adaptive_review.reasons %}
+            <article class="coverage-item">
+              <div class="coverage-top">
+                <strong>Confidence check</strong>
+                <span class="status-pill status-queued">Review</span>
+              </div>
+              <p>{{ reason }}</p>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel-card" id="review-queue">
+          <div class="panel-head">
+            <h3>Adaptive Preview</h3>
+            <p>Check whether the extracted dates, descriptions, and amounts look correct. If any detected column role looks wrong, correct it below before continuing.</p>
+          </div>
+          <form action="/adaptive-approve/{{ adaptive_review_token }}" method="post" class="adaptive-review-form">
+            <div class="review-toolbar review-toolbar-sticky">
+              <div class="review-toolbar-copy">
+                <strong>Adaptive correction</strong>
+                <p class="meta-line">Correct any wrong column meaning first. If the preview is still wrong after that, this layout still needs a dedicated parser or a deeper adaptive correction flow.</p>
+              </div>
+              <div class="review-toolbar-stats">
+                <label class="review-search train-name-field">
+                  <span class="field-label">Save Layout As</span>
+                  <input name="training_bank_name" type="text" value="{{ training_bank_name or '' }}" placeholder="Ascend Statement" />
+                </label>
+                <span class="review-counter" data-adaptive-change-count>0 column changes</span>
+                <button class="primary-btn" type="submit">Continue With Adaptive Parse</button>
+              </div>
+            </div>
+            <div class="adaptive-column-grid">
+              {% for column in adaptive_review.detected_columns %}
+              <article class="adaptive-column-card" data-adaptive-column>
+                <div class="adaptive-column-head">
+                  <strong>{{ column.label }}</strong>
+                  <span class="status-pill status-live">{{ column.semantic }}</span>
+                </div>
+                <label class="field-label" for="column-role-{{ column.index }}">Correct meaning</label>
+                <select
+                  id="column-role-{{ column.index }}"
+                  name="column_role_{{ column.index }}"
+                  class="category-select"
+                  data-adaptive-role
+                  data-original="{{ column.semantic }}"
+                >
+                  {% for option in adaptive_review.column_role_options %}
+                  <option value="{{ option }}" {% if column.semantic == option %}selected{% endif %}>{{ option }}</option>
+                  {% endfor %}
+                </select>
+              </article>
+              {% endfor %}
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in adaptive_review.preview_rows %}
+                  <tr>
+                    <td>{{ row.transaction_date or '-' }}</td>
+                    <td>{{ row.description }}</td>
+                    <td>{{ row.debit or '-' }}</td>
+                    <td>{{ row.credit or '-' }}</td>
+                    <td>{{ row.balance or '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </section>
+      </section>
+      {% endif %}
+
+      {% if summary %}
+      <section class="results-section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Analysis Ready</p>
+            <h2>Workbook generated successfully</h2>
+            <p class="subtle-line">
+              {% if summary.account_name %}<strong>{{ summary.account_name }}</strong>{% endif %}
+              {% if summary.account_number %}<span>Account {{ summary.account_number }}</span>{% endif %}
+              {% if summary.currency %}<span>{{ summary.currency }}</span>{% endif %}
+              <span>{{ summary.page_count }} pages</span>
+              {% if summary.period_label %}<span>{{ summary.period_label }}</span>{% endif %}
+              <span>Parser {{ summary.parser_name }}</span>
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="secondary-btn" href="/download/{{ download_token }}">Download Excel</a>
+            <a class="ghost-btn" href="/consolidate">Consolidate</a>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card accent-check">
+            <span>Opening Balance</span>
+            <strong>
+              {% if summary.opening_balance is not none %}
+              {{ "{:,.2f}".format(summary.opening_balance) }}
+              {% else %}
+              N/A
+              {% endif %}
+            </strong>
+            <small>Starting balance before the statement-period movement.</small>
+          </article>
+          <article class="stat-card accent-credit">
+            <span>Total Credits</span>
+            <strong>{{ "{:,.2f}".format(summary.total_credit) }}</strong>
+            <small>{{ summary.inflow_count }} inflow transactions</small>
+          </article>
+          <article class="stat-card accent-debit">
+            <span>Total Debits</span>
+            <strong>{{ "{:,.2f}".format(summary.total_debit) }}</strong>
+            <small>{{ summary.outflow_count }} outflow transactions</small>
+          </article>
+          <article class="stat-card accent-parser">
+            <span>Net Movement</span>
+            <strong>{{ "{:,.2f}".format(summary.net_movement) }}</strong>
+            <small>Credits minus debits for the statement period.</small>
+          </article>
+          <article class="stat-card accent-check">
+            <span>Closing Balance</span>
+            <strong>
+              {% if summary.closing_balance is not none %}
+              {{ "{:,.2f}".format(summary.closing_balance) }}
+              {% else %}
+              N/A
+              {% endif %}
+            </strong>
+            <small>Opening balance plus net movement.</small>
+          </article>
+          <article class="stat-card accent-check">
+            <span>Needs Review</span>
+            <strong>{{ summary.review_rows|length }}</strong>
+            <small>{{ "{:,.2f}".format(summary.review_total_amount) }} currently sitting in the review queue</small>
+          </article>
+        </div>
+
+        <section class="panel-card recon-card">
+          <div class="panel-head">
+            <h3>Reconciliation Checks</h3>
+            <p>These compare the parsed results with the totals and balances reported in the PDF header.</p>
+          </div>
+          <div class="recon-grid">
+            {% for check in summary.reconciliation_checks %}
+            <article class="recon-item {% if check.matched %}recon-ok{% else %}recon-warn{% endif %}">
+              <span>{{ check.label }}</span>
+              <strong>
+                {% if not check.available %}Unavailable{% elif check.matched %}Matched{% else %}Check{% endif %}
+              </strong>
+              <small>Expected: {% if check.expected is not none %}{{ "{:,.2f}".format(check.expected) }}{% else %}N/A{% endif %}</small>
+              <small>Actual: {% if check.actual is not none %}{{ "{:,.2f}".format(check.actual) }}{% else %}N/A{% endif %}</small>
+              <small>Difference: {% if check.difference is not none %}{{ "{:,.2f}".format(check.difference) }}{% else %}N/A{% endif %}</small>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <div class="tables-grid">
+          <section class="panel-card">
+            <div class="panel-head">
+              <h3>Inflow Breakdown</h3>
+              <p>Current credit classification totals</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Category</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for category, total in summary.inflow_breakdown %}
+                  <tr>
+                    <td>{{ category }}</td>
+                    <td>{{ "{:,.2f}".format(total) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-head">
+              <h3>Outflow Breakdown</h3>
+              <p>Current debit classification totals</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Category</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for category, total in summary.outflow_breakdown %}
+                  <tr>
+                    <td>{{ category }}</td>
+                    <td>{{ "{:,.2f}".format(total) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel-card">
+          <div class="panel-head">
+            <h3>Custom Categories</h3>
+            <p>Add a category once and it becomes available in future review dropdowns.</p>
+          </div>
+          <form action="/categories/{{ download_token }}" method="post" class="review-control-bar">
+            <label class="review-filter">
+              <span class="field-label">Direction</span>
+              <select class="category-select" name="category_direction">
+                <option value="inflow">Inflow category</option>
+                <option value="outflow">Outflow category</option>
+              </select>
+            </label>
+            <label class="review-search">
+              <span class="field-label">Category name</span>
+              <input type="text" name="category_name" placeholder="Example: Education or Office Running" required />
+            </label>
+            <div class="review-toolbar-stats">
+              <button class="secondary-btn" type="submit">Save Category</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel-card" id="review-queue">
+          <div class="panel-head">
+            <h3>Review Queue</h3>
+            <p>Approve a category here to regenerate the final clean workbook with your corrections applied.</p>
+          </div>
+          {% if summary.review_rows %}
+          <form action="/approve/{{ download_token }}" method="post" class="review-form">
+            <div class="review-toolbar review-toolbar-sticky">
+              <div class="review-toolbar-copy">
+                <strong>Fast review</strong>
+                <p class="meta-line">Only unresolved rows appear here. Search, filter, or use the suggested category in one click before regenerating the workbook.</p>
+              </div>
+              <div class="review-toolbar-stats">
+                <span class="review-counter" data-review-selected-count>0 changes</span>
+                <button class="primary-btn" type="submit">Apply Corrections</button>
+              </div>
+            </div>
+            <div class="review-control-bar">
+              <label class="review-search">
+                <span class="field-label">Search descriptions</span>
+                <input type="search" placeholder="Find narration, sender, bank charge..." data-review-search />
+              </label>
+              <label class="review-filter">
+                <span class="field-label">Direction</span>
+                <select class="category-select" data-review-direction>
+                  <option value="all">All rows</option>
+                  <option value="inflow">Inflows</option>
+                  <option value="outflow">Outflows</option>
+                </select>
+              </label>
+              <label class="review-filter">
+                <span class="field-label">Review type</span>
+                <select class="category-select" data-review-status>
+                  <option value="all">All review rows</option>
+                  <option value="suggested">Has suggestion</option>
+                  <option value="needs-rule">Needs rule</option>
+                </select>
+              </label>
+              <label class="review-toggle">
+                <input type="checkbox" name="remember_approvals" checked />
+                <span>Remember for matching account</span>
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Direction</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Suggestion</th>
+                    <th>Approve Category</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in summary.review_rows %}
+                  <tr
+                    data-review-row
+                    data-direction="{{ row.direction }}"
+                    data-status="{% if row.suggested_category %}suggested{% else %}needs-rule{% endif %}"
+                    data-description="{{ row.description|lower }}"
+                  >
+                    <td>{{ row.transaction_date or '-' }}</td>
+                    <td>{{ row.direction }}</td>
+                    <td>{{ row.description }}</td>
+                    <td>{{ "{:,.2f}".format(row.amount) }}</td>
+                    <td>
+                      <div class="review-suggestion-cell">
+                        <span class="suggestion-badge {% if row.suggested_category %}has-suggestion{% else %}needs-rule{% endif %}">
+                          {{ row.suggested_category or 'Needs rule' }}
+                        </span>
+                        {% if row.suggested_category %}
+                        <button
+                          class="inline-action"
+                          type="button"
+                          data-use-suggestion
+                          data-target="category_{{ row.transaction_index }}"
+                          data-value="{{ row.suggested_category }}"
+                        >
+                          Use suggestion
+                        </button>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td>
+                      <select
+                        name="category_{{ row.transaction_index }}"
+                        class="category-select"
+                        data-review-select
+                        data-original=""
+                      >
+                        <option value="">Leave unresolved</option>
+                        {% for option in row.category_options %}
+                        <option value="{{ option }}" {% if row.selected_category == option %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>
+                      <span class="confidence-badge {% if row.confidence >= 0.8 %}confidence-strong{% elif row.confidence >= 0.6 %}confidence-mid{% else %}confidence-low{% endif %}">
+                        {{ "{:.0%}".format(row.confidence) }}
+                      </span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </form>
+          {% else %}
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td>No low-confidence or unclassified rows for this run.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </section>
+      </section>
+      {% endif %}
+{% endblock %}

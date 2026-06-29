@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "statement-analyzer"
+version = "0.1.0"
+description = "Daikot Worktools business operations suite"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2.0",
+  "pdfplumber>=0.11.0",
+  "openpyxl>=3.1.0",
+  "XlsxWriter>=3.2.0",
+  "fastapi>=0.135.0",
+  "uvicorn>=0.42.0",
+  "jinja2>=3.1.0",
+  "python-multipart>=0.0.22",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+statement-analyzer = "statement_analyzer.cli:main"
+statement-analyzer-web = "statement_analyzer.webapp:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

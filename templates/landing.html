@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Daikot Worktools | Business Operations Suite{% endblock %}
+{% block meta_description %}Daikot Worktools brings statement analysis, workbook consolidation, model training, and future business utilities into one clean workspace.{% endblock %}
+{% block content_class %}landing-content{% endblock %}
+
+{% block content %}
+<section class="landing-hero" aria-labelledby="landing-title">
+  <img class="landing-hero-image" src="/static/assets/daikot-worktools-hero.png" alt="Daikot Worktools dashboard preview on a laptop" />
+  <div class="landing-hero-shade"></div>
+  <div class="landing-hero-copy">
+    <p class="eyebrow">Business Operations Suite</p>
+    <h1 id="landing-title">Daikot Worktools</h1>
+    <p class="lead">
+      Practical tools for faster business work.
+    </p>
+    <div class="hero-actions">
+      <a class="primary-btn" href="/analyze-bank-statement">Start Analysis</a>
+      <a class="secondary-btn" href="/consolidate">Consolidate Files</a>
+      <a class="ghost-btn" href="/train-analyzer">Train Model</a>
+    </div>
+  </div>
+</section>
+
+<section class="tool-grid" id="tools" aria-label="Daikot tools">
+  <a class="tool-card tool-card-primary" href="/analyze-bank-statement">
+    <span class="tool-kicker">Live</span>
+    <h2>Statement Analysis</h2>
+    <p>Analyze bank statements and export clean Excel files.</p>
+    <span class="tool-link">Open</span>
+  </a>
+  <a class="tool-card" href="/consolidate">
+    <span class="tool-kicker">Live</span>
+    <h2>Consolidation</h2>
+    <p>Merge analyzed workbooks into one report.</p>
+    <span class="tool-link">Open</span>
+  </a>
+  <a class="tool-card" href="/train-analyzer">
+    <span class="tool-kicker">Model</span>
+    <h2>Train Model</h2>
+    <p>Teach Daikot unfamiliar statement layouts.</p>
+    <span class="tool-link">Open</span>
+  </a>
+  <a class="tool-card tool-card-muted" href="/afs">
+    <span class="tool-kicker">Soon</span>
+    <h2>AFS</h2>
+    <p>Coming soon.</p>
+    <span class="tool-link">View</span>
+  </a>
+</section>
+{% endblock %}

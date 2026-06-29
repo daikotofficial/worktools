@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Consolidation | Daikot Worktools{% endblock %}
+{% block meta_description %}Consolidate analyzed statement workbooks into one clean Excel file with Daikot Worktools.{% endblock %}
+
+{% block content %}
+      <section class="workspace-shell" id="consolidate-workspace">
+        <div class="workspace-copy">
+          <p class="eyebrow">Consolidation Workspace</p>
+          <h1>Consolidate workbooks.</h1>
+          <p class="lead workspace-lead">
+            Upload analyzed Excel files and merge them.
+          </p>
+          <div class="workspace-steps">
+            <span>Upload</span>
+            <span>Check</span>
+            <span>Download</span>
+          </div>
+        </div>
+        <div class="workspace-panel">
+          <form class="upload-card" action="/consolidate" method="post" enctype="multipart/form-data" id="consolidate-form">
+            <label class="upload-zone" for="consolidation-statements">
+              <input id="consolidation-statements" name="statements" type="file" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12" multiple required />
+              <span class="upload-kicker">Upload analyzed Excel files</span>
+              <strong id="consolidation-file-label">Drag and drop, or click to choose workbooks</strong>
+              <small>Select one or many workbooks.</small>
+            </label>
+            <button class="primary-btn" type="submit" id="consolidate-btn">Consolidate Workbooks</button>
+            {% if error %}
+            <p class="error-line">{{ error }}</p>
+            {% endif %}
+          </form>
+        </div>
+      </section>
+
+      {% if manual_required %}
+      <section class="panel-card">
+        <div class="panel-head">
+          <p class="eyebrow">Manual Details Needed</p>
+          <h3>I am finding it difficult to detect the bank name or account number for one or more files.</h3>
+          <p>Kindly fill them in yourself. Once every file has a bank and account number, continue to generate the consolidated workbook.</p>
+        </div>
+        <form action="/consolidate/{{ session_token }}/complete" method="post" class="consolidation-detail-form">
+          <div class="consolidation-list">
+            {% for file in files %}
+            <article class="consolidation-file-row">
+              <div class="consolidation-file-copy">
+                <strong>{{ file.filename }}</strong>
+                <p class="meta-line">
+                  {{ file.inflow_count }} inflows, {{ file.outflow_count }} outflows
+                  {% if file.parser_name %}<span>Parser {{ file.parser_name }}</span>{% endif %}
+                </p>
+              </div>
+              <label class="review-search">
+                <span class="field-label">Bank</span>
+                <input type="text" name="bank_{{ loop.index0 }}" value="{{ file.bank_name or '' }}" placeholder="Example: Zenith Bank" required />
+              </label>
+              <label class="review-search">
+                <span class="field-label">Account Number</span>
+                <input type="text" name="account_{{ loop.index0 }}" value="{{ file.account_number or '' }}" placeholder="Example: 1010191819" required />
+              </label>
+            </article>
+            {% endfor %}
+          </div>
+          <div class="consolidation-actions">
+            <button class="primary-btn" type="submit">Continue</button>
+          </div>
+        </form>
+      </section>
+      {% endif %}
+
+      {% if result %}
+      <section class="results-section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Consolidation Ready</p>
+            <h2>Final workbook generated successfully</h2>
+            <p class="subtle-line">
+              <span>{{ result.file_count }} analyzed workbooks</span>
+              <span>{{ result.inflow_count }} consolidated inflows</span>
+              <span>{{ result.outflow_count }} consolidated outflows</span>
+            </p>
+          </div>
+          <a class="secondary-btn" href="/download-consolidated/{{ session_token }}">Download Consolidated Excel</a>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card accent-parser">
+            <span>Statements</span>
+            <strong>{{ result.file_count }}</strong>
+            <small>Analyzed workbooks included in this run.</small>
+          </article>
+          <article class="stat-card accent-credit">
+            <span>Total Inflows</span>
+            <strong>{{ result.inflow_count }}</strong>
+            <small>Rows written to Consolidated Inflows.</small>
+          </article>
+          <article class="stat-card accent-debit">
+            <span>Total Outflows</span>
+            <strong>{{ result.outflow_count }}</strong>
+            <small>Rows written to Consolidated Outflows.</small>
+          </article>
+        </div>
+
+        <section class="panel-card">
+          <div class="panel-head">
+            <h3>Included Statements</h3>
+            <p>Each consolidated row includes a bank/account column using the details below.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Workbook</th>
+                  <th>Bank</th>
+                  <th>Account Number</th>
+                  <th>Inflows</th>
+                  <th>Outflows</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for file in result.files %}
+                <tr>
+                  <td>{{ file.filename }}</td>
+                  <td>{{ file.bank_name }}</td>
+                  <td>{{ file.account_number }}</td>
+                  <td>{{ file.inflow_count }}</td>
+                  <td>{{ file.outflow_count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+      {% endif %}
+{% endblock %}
