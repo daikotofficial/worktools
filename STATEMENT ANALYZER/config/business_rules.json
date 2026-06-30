@@ -1,0 +1,213 @@
+{
+  "inflow_rules": [
+    {
+      "category": "Reversals",
+      "match_any": [
+        "RSVL",
+        "RVSL",
+        "REVERSAL",
+        "REFUND",
+        "RETURNED"
+      ],
+      "confidence": 1.0
+    },
+    {
+      "category": "Cash Deposit",
+      "match_any": [
+        "CASH DEPOSIT",
+        "CASH DEP",
+        "LODGEMENT",
+        "TELLER",
+        "CHEQUE DEPOSIT"
+      ],
+      "confidence": 0.94
+    },
+    {
+      "category": "Interest",
+      "match_any": [
+        "INTEREST",
+        "CREDIT INTEREST",
+        "DIVIDEND"
+      ],
+      "confidence": 0.92
+    },
+    {
+      "category": "Loan Inflow",
+      "match_any": [
+        "LOAN",
+        "FACILITY DISBURSEMENT"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "category": "Sales",
+      "purpose_any": [
+        "SALE",
+        "SALES",
+        "PAYMENT FOR",
+        "PART PAYMENT",
+        "PURCHASE",
+        "INVOICE",
+        "GOODS",
+        "SUPPLY"
+      ],
+      "confidence": 0.88
+    }
+  ],
+  "outflow_rules": [
+    {
+      "category": "Charges",
+      "match_any": [
+        "CHARGE",
+        "ACCOUNT MAINTENANCE",
+        "SMS CHARGE",
+        "SMS ALERT",
+        "ETOKEN"
+      ],
+      "confidence": 1.0
+    },
+    {
+      "category": "Tax & Levy",
+      "match_any": [
+        "STAMP DUTY",
+        "EMT LEVY",
+        "VAT",
+        "LEVY"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "category": "Commission",
+      "purpose_any": [
+        "COMMISSION"
+      ],
+      "confidence": 0.95
+    },
+    {
+      "category": "Airtime",
+      "match_any": [
+        "AIRTIME"
+      ],
+      "confidence": 0.96
+    },
+    {
+      "category": "Travel & Accomodation",
+      "purpose_any": [
+        "FLIGHT",
+        "HOTEL",
+        "TRAVEL",
+        "ACCOMODATION",
+        "ACCOMMODATION"
+      ],
+      "confidence": 0.94
+    },
+    {
+      "category": "Salary",
+      "purpose_any": [
+        "SALARY",
+        "PAYROLL"
+      ],
+      "confidence": 0.95
+    },
+    {
+      "category": "Rent",
+      "purpose_any": [
+        "RENT"
+      ],
+      "confidence": 0.93
+    },
+    {
+      "category": "Loan",
+      "purpose_any": [
+        "LOAN"
+      ],
+      "confidence": 0.93
+    },
+    {
+      "category": "Transport",
+      "purpose_any": [
+        "BOLT",
+        "BIKE",
+        "FUEL",
+        "TRANSPORT",
+        "DRIVER",
+        "DISPATCH",
+        "TICKET",
+        "TOWING"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "category": "Gas",
+      "purpose_any": [
+        "GAS"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "category": "Drinks",
+      "purpose_any": [
+        "DRINK",
+        "DRINKS",
+        "WINE"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "category": "Food",
+      "purpose_any": [
+        "FOOD"
+      ],
+      "confidence": 0.9
+    },
+    {
+      "category": "Goods",
+      "purpose_any": [
+        "GOODS",
+        "MATERIAL",
+        "MATERIALS",
+        "FURNITURE",
+        "EQUIPMENT",
+        "DIESEL",
+        "WATER"
+      ],
+      "confidence": 0.86
+    },
+    {
+      "category": "Repair & Maintenance",
+      "purpose_any": [
+        "REPAIR",
+        "MAINTENANCE",
+        "SERVICE",
+        "MECHANIC"
+      ],
+      "confidence": 0.88
+    },
+    {
+      "category": "Construction",
+      "purpose_any": [
+        "PLUMBING",
+        "CLEANING",
+        "POP",
+        "CEILING",
+        "CEMENT",
+        "WELDER",
+        "PAINT",
+        "TILES",
+        "BLOCK",
+        "PROJECT",
+        "BRICK",
+        "WOOD",
+        "ELECTRICAL",
+        "BOREHOLE",
+        "ROOF",
+        "GLASS"
+      ],
+      "confidence": 0.88
+    }
+  ],
+  "custom_categories": {
+    "inflow": [],
+    "outflow": []
+  }
+}

@@ -1,0 +1,349 @@
+{
+  "templates": [
+    {
+      "key": "date-description-debit-date-description-debit",
+      "name": "adaptive-template:date-description-debit-date-description-debit",
+      "required_terms": [
+        "DATE",
+        "DESCRIPTION",
+        "DEBIT",
+        "CREDIT",
+        "OPENING BALANCE",
+        "CLOSING BALANCE"
+      ],
+      "optional_terms": [
+        "VALUE DATE"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE",
+        "DESCRIPTION",
+        "DEBIT",
+        "CREDIT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.297,
+        0.434,
+        0.445,
+        0.774,
+        0.909
+      ]
+    },
+    {
+      "key": "date-value-date-description-date-date-description",
+      "name": "adaptive-template:date-value-date-description-date-date-description",
+      "required_terms": [
+        "DATE",
+        "VALUE DATE",
+        "DESCRIPTION",
+        "DEBIT",
+        "OPENING BALANCE",
+        "CLOSING BALANCE"
+      ],
+      "optional_terms": [],
+      "column_order": [
+        "date",
+        "date",
+        "description",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE",
+        "VALUE DATE",
+        "DESCRIPTION",
+        "DEBIT",
+        "CREDIT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.087,
+        0.176,
+        0.451,
+        0.75,
+        0.846,
+        0.909
+      ]
+    },
+    {
+      "key": "date-date-description-deposit-date-description-credit",
+      "name": "adaptive-template:date-date-description-deposit-date-description-credit",
+      "required_terms": [
+        "DATE DATE",
+        "DESCRIPTION",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "ACCOUNT NUMBER",
+        "CURRENCY"
+      ],
+      "optional_terms": [
+        "ACCOUNT STATEMENT",
+        "VALUE DATE"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "credit",
+        "debit",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE DATE",
+        "DESCRIPTION",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.111,
+        0.295,
+        0.588,
+        0.744,
+        0.895
+      ]
+    },
+    {
+      "key": "date-details-ref-date-description-reference",
+      "name": "adaptive-template:date-details-ref-date-description-reference",
+      "required_terms": [
+        "DATE",
+        "DETAILS",
+        "REF.",
+        "VALUE DATE",
+        "ACCOUNT NAME",
+        "ACCOUNT NO"
+      ],
+      "optional_terms": [
+        "CURRENCY",
+        "OPENING BALANCE",
+        "TOTAL WITHDRAWALS",
+        "TOTAL LODGEMENTS",
+        "CLOSING BALANCE",
+        "ACCOUNT STATEMENT"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "reference",
+        "date",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE",
+        "DETAILS",
+        "REF.",
+        "VALUE DATE",
+        "WITHDRAWAL",
+        "LODGEMENT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.125,
+        0.317,
+        0.401,
+        0.542,
+        0.654,
+        0.766,
+        0.861
+      ]
+    },
+    {
+      "key": "value-date-remarks-withdrawal-date-description-debit",
+      "name": "adaptive-template:value-date-remarks-withdrawal-date-description-debit",
+      "required_terms": [
+        "VALUE DATE",
+        "REMARKS",
+        "WITHDRAWAL",
+        "DEPOSIT",
+        "ACCOUNT NUMBER",
+        "CURRENCY"
+      ],
+      "optional_terms": [
+        "OPENING BALANCE",
+        "CLOSING BALANCE",
+        "AVAILABLE BALANCE",
+        "ACCOUNT STATEMENT"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "VALUE DATE",
+        "REMARKS",
+        "WITHDRAWAL",
+        "DEPOSIT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.18,
+        0.41,
+        0.602,
+        0.745,
+        0.9
+      ]
+    },
+    {
+      "key": "date-value-date-narration-id-date-description-reference",
+      "name": "adaptive-template:date-value-date-narration-id-date-description-reference",
+      "required_terms": [
+        "DATE VALUE DATE",
+        "NARRATION",
+        "ID",
+        "WITHDRAWALS",
+        "CURRENCY",
+        "TOTAL DEBIT"
+      ],
+      "optional_terms": [
+        "TOTAL CREDIT",
+        "VALUE DATE"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "reference",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE VALUE DATE",
+        "NARRATION",
+        "ID",
+        "WITHDRAWALS",
+        "DEPOSITS",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.133,
+        0.263,
+        0.502,
+        0.667,
+        0.776,
+        0.895
+      ]
+    },
+    {
+      "key": "trans-date-value-date-narration-debit-date-description-debit",
+      "name": "adaptive-template:trans-date-value-date-narration-debit-date-description-debit",
+      "required_terms": [
+        "TRANS DATE VALUE DATE",
+        "NARRATION",
+        "DEBIT",
+        "CREDIT",
+        "ACCOUNT NUMBER",
+        "CURRENCY"
+      ],
+      "optional_terms": [
+        "OPENING BALANCE",
+        "TOTAL DEBIT",
+        "TOTAL CREDIT",
+        "CLOSING BALANCE"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "debit",
+        "credit",
+        "balance"
+      ],
+      "header_labels": [
+        "TRANS DATE VALUE DATE",
+        "NARRATION",
+        "DEBIT",
+        "CREDIT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.157,
+        0.372,
+        0.598,
+        0.741,
+        0.884
+      ]
+    },
+    {
+      "key": "date-description-amount-date-description-amount",
+      "name": "adaptive-template:date-description-amount-date-description-amount",
+      "required_terms": [
+        "DATE",
+        "DESCRIPTION",
+        "AMOUNT",
+        "BALANCE"
+      ],
+      "optional_terms": [],
+      "column_order": [
+        "date",
+        "description",
+        "amount",
+        "balance"
+      ],
+      "header_labels": [
+        "DATE",
+        "DESCRIPTION",
+        "AMOUNT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.184,
+        0.566,
+        0.86,
+        0.951
+      ]
+    },
+    {
+      "key": "trans-date-narration-value-date-date-description-date",
+      "name": "Ascend Statement",
+      "required_terms": [
+        "TRANS DATE",
+        "NARRATION",
+        "VALUE DATE",
+        "MONEY IN",
+        "OPENING BALANCE",
+        "TOTAL DEBIT"
+      ],
+      "optional_terms": [
+        "TOTAL CREDIT",
+        "CLOSING BALANCE",
+        "AVAILABLE BALANCE"
+      ],
+      "column_order": [
+        "date",
+        "description",
+        "date",
+        "credit",
+        "debit",
+        "balance"
+      ],
+      "header_labels": [
+        "TRANS DATE",
+        "NARRATION",
+        "VALUE DATE",
+        "MONEY IN",
+        "MONEY OUT",
+        "BALANCE"
+      ],
+      "column_ratios": [
+        0.091,
+        0.198,
+        0.569,
+        0.676,
+        0.776,
+        0.923
+      ]
+    }
+  ]
+}

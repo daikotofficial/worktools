@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Daikot Worktools{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Daikot Worktools brings statement analysis, workbook consolidation, and practical business tools into one clean workspace.{% endblock %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  {% if adsense_client_id %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client_id }}" crossorigin="anonymous"></script>
+  {% endif %}
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand-mark" href="/" aria-label="Daikot Worktools home">
+        <span class="brand-badge">DW</span>
+        <span class="brand-copy">
+          <strong>Daikot Worktools</strong>
+          <small>Business operations suite</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/" {% if active_page == 'home' %}aria-current="page"{% endif %}>Home</a>
+        <a href="/analyze-bank-statement" {% if active_page == 'analysis' %}aria-current="page"{% endif %}>Statement Analysis</a>
+        <a href="/consolidate" {% if active_page == 'consolidation' %}aria-current="page"{% endif %}>Consolidation</a>
+        <a href="/train-analyzer" {% if active_page == 'training' %}aria-current="page"{% endif %}>Train Model</a>
+        <a href="/afs" {% if active_page == 'afs' %}aria-current="page"{% endif %}>AFS</a>
+      </nav>
+      <a class="nav-cta" href="{{ header_cta_href|default('/analyze-bank-statement') }}">{{ header_cta_label|default('Start Analysis') }}</a>
+    </header>
+    <main class="content-wrap {% block content_class %}{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+      <div class="footer-top">
+        <div class="footer-brand-block">
+          <a class="footer-logo" href="/">
+            <span class="brand-badge">DW</span>
+            <span>
+              <strong>Daikot Worktools</strong>
+              <small>Business operations suite</small>
+            </span>
+          </a>
+          <p>Statement analysis, consolidation, training, and more work tools under one clean workspace.</p>
+          <a class="footer-phone" href="tel:+2349076669331">09076669331</a>
+        </div>
+
+        <nav class="footer-column" aria-label="Product links">
+          <strong>Product</strong>
+          <a href="/">Home</a>
+          <a href="/analyze-bank-statement">Statement Analysis</a>
+          <a href="/consolidate">Consolidation</a>
+          <a href="/train-analyzer">Train Model</a>
+          <a href="/afs">AFS</a>
+        </nav>
+
+        <nav class="footer-column" aria-label="Tools and resources">
+          <strong>Tools</strong>
+          <a href="/analyze-bank-statement">Analyze PDF</a>
+          <a href="/consolidate">Merge Workbooks</a>
+          <a href="/train-analyzer">Train Layout</a>
+          <a href="/sitemap.xml">Sitemap</a>
+        </nav>
+
+        <nav class="footer-column" aria-label="Company links">
+          <strong>Company</strong>
+          <a href="https://daikot.com.ng" target="_blank" rel="noopener">Daikot</a>
+          <a href="https://tovabooks.com.ng" target="_blank" rel="noopener">Tova Books</a>
+          <a href="https://tova.com.ng" target="_blank" rel="noopener">Tova Fixed Asset</a>
+          <a href="/contact">Contact</a>
+        </nav>
+
+        <nav class="footer-column" aria-label="Legal links">
+          <strong>Legal</strong>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms</a>
+          <a href="/ads.txt">Ads.txt</a>
+          <a href="/robots.txt">Robots.txt</a>
+        </nav>
+      </div>
+
+      <div class="footer-bottom">
+        <span>&copy; 2026 Daikot Worktools</span>
+        <div class="social-links" aria-label="Social links">
+          {% for social in social_links %}
+          <a
+            class="social-link"
+            href="{{ social.href }}"
+            {% if social.is_external %}target="_blank" rel="noopener"{% endif %}
+            aria-label="{{ social.label }}"
+          >
+            {{ social.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

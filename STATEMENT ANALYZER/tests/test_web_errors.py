@@ -1,0 +1,143 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import threading
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
+from pathlib import Path
+
+from statement_analyzer.classifiers import rules as rules_module
+from statement_analyzer.models import TransactionDirection
+from statement_analyzer.service import AnalysisSummary, ReconciliationCheck, ReviewRow
+from statement_analyzer import webapp
+from statement_analyzer.webapp import friendly_job_error, refresh_summary_review_options
+
+
+class WebErrorTests(unittest.TestCase):
+    def test_assertion_error_gets_friendly_message(self) -> None:
+        message = friendly_job_error(AssertionError())
+        self.assertIn("unexpected structure", message)
+
+    def test_existing_error_message_is_preserved(self) -> None:
+        message = friendly_job_error(ValueError("Unsupported bank statement format for now."))
+        self.assertEqual(message, "Unsupported bank statement format for now.")
+
+    def test_password_error_gets_password_message(self) -> None:
+        PDFPasswordIncorrect = type("PDFPasswordIncorrect", (Exception,), {})
+        message = friendly_job_error(PDFPasswordIncorrect())
+        self.assertIn("password-protected", message)
+
+    def test_empty_unknown_exception_gets_fallback_message(self) -> None:
+        class EmptyError(Exception):
+            pass
+
+        message = friendly_job_error(EmptyError())
+        self.assertIn("EmptyError", message)
+        self.assertIn("could not be analyzed automatically", message)
+
+    def test_refresh_summary_review_options_includes_new_custom_category(self) -> None:
+        original_rules_file = rules_module.RULES_FILE
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_rules_file = Path(temp_dir) / "business_rules.json"
+            temp_rules_file.write_text(json.dumps({"inflow_rules": [], "outflow_rules": []}), encoding="utf-8")
+            rules_module.RULES_FILE = temp_rules_file
+
+            try:
+                summary = AnalysisSummary(
+                    parser_name="test",
+                    page_count=1,
+                    account_name=None,
+                    account_number=None,
+                    currency="NGN",
+                    period_label=None,
+                    opening_balance=0.0,
+                    closing_balance=100.0,
+                    net_movement=100.0,
+                    total_transactions=1,
+                    inflow_count=1,
+                    outflow_count=0,
+                    total_credit=100.0,
+                    total_debit=0.0,
+                    classified_inflow_total=0.0,
+                    classified_outflow_total=0.0,
+                    unclassified_inflow_total=100.0,
+                    unclassified_outflow_total=0.0,
+                    inflow_breakdown=[],
+                    outflow_breakdown=[],
+                    reconciliation_checks=[
+                        ReconciliationCheck(
+                            label="Opening Balance",
+                            expected=None,
+                            actual=None,
+                            matched=False,
+                            difference=None,
+                            available=False,
+                        )
+                    ],
+                    available_check_count=0,
+                    matched_check_count=0,
+                    review_rows=[
+                        ReviewRow(
+                            transaction_index=0,
+                            transaction_date=None,
+                            description="Customer payment",
+                            amount=100.0,
+                            direction=TransactionDirection.INFLOW.value,
+                            suggested_category=None,
+                            selected_category=None,
+                            confidence=0.35,
+                            rule_name=None,
+                            category_options=["Sales"],
+                        )
+                    ],
+                    review_total_amount=100.0,
+                )
+
+                rules_module.add_custom_category("inflow", "Capital Injection")
+                refresh_summary_review_options(summary)
+
+                self.assertIn("Capital Injection", summary.review_rows[0].category_options)
+            finally:
+                rules_module.RULES_FILE = original_rules_file
+
+    def test_analysis_jobs_run_one_at_a_time(self) -> None:
+        original_executor = webapp._analysis_executor
+        original_runner = webapp.run_analysis_job
+        test_executor = ThreadPoolExecutor(max_workers=1)
+        first_started = threading.Event()
+        release_first = threading.Event()
+        second_started = threading.Event()
+        started_jobs: list[str] = []
+
+        def fake_runner(job_id: str, **kwargs) -> None:
+            started_jobs.append(job_id)
+            if job_id == "first":
+                first_started.set()
+                release_first.wait(timeout=2)
+                return
+            second_started.set()
+
+        webapp._analysis_executor = test_executor
+        webapp.run_analysis_job = fake_runner
+        try:
+            webapp.start_analysis_job("first")
+            self.assertTrue(first_started.wait(timeout=1))
+
+            webapp.start_analysis_job("second")
+            self.assertFalse(second_started.wait(timeout=0.2))
+
+            release_first.set()
+            self.assertTrue(second_started.wait(timeout=1))
+            self.assertEqual(["first", "second"], started_jobs)
+        finally:
+            release_first.set()
+            test_executor.shutdown(wait=True, cancel_futures=True)
+            webapp._analysis_executor = original_executor
+            webapp.run_analysis_job = original_runner
+
+
+if __name__ == "__main__":
+    unittest.main()
