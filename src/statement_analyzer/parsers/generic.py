@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from threading import RLock
 
 import pdfplumber
 
@@ -48,6 +49,7 @@ DATE_PATTERNS = (
 CONFIDENCE_THRESHOLD = 0.62
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 ADAPTIVE_TEMPLATES_FILE = PROJECT_ROOT / "config" / "adaptive_layouts.json"
+_ADAPTIVE_TEMPLATES_LOCK = RLock()
 METADATA_MARKERS = (
     "ACCOUNT NAME",
     "CUSTOMER NAME",
@@ -1420,19 +1422,23 @@ def extract_signature_text(pages: list[pdfplumber.page.Page], max_pages: int = 2
 
 
 def load_adaptive_templates(path: Path = ADAPTIVE_TEMPLATES_FILE) -> list[AdaptiveTemplate]:
-    if not path.exists():
-        return []
-    data = json.loads(path.read_text(encoding="utf-8"))
+    with _ADAPTIVE_TEMPLATES_LOCK:
+        if not path.exists():
+            return []
+        data = json.loads(path.read_text(encoding="utf-8"))
     templates = data.get("templates", data if isinstance(data, list) else [])
     return [template_from_dict(item) for item in templates]
 
 
 def save_adaptive_templates(templates: list[AdaptiveTemplate], path: Path = ADAPTIVE_TEMPLATES_FILE) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "templates": [template_to_dict(template) for template in templates],
-    }
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    with _ADAPTIVE_TEMPLATES_LOCK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "templates": [template_to_dict(template) for template in templates],
+        }
+        temp_path = path.with_suffix(f"{path.suffix}.tmp")
+        temp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        temp_path.replace(path)
 
 
 def match_adaptive_template(signature_text: str, templates: list[AdaptiveTemplate]) -> AdaptiveTemplate | None:
@@ -1473,31 +1479,32 @@ def save_adaptive_template(
     preferred_name: str | None = None,
     rename_existing: bool = False,
 ) -> AdaptiveTemplate | None:
-    templates = list(existing_templates) if existing_templates is not None else load_adaptive_templates(path)
-    template = build_adaptive_template(signature_text, plan, preferred_name=preferred_name)
-    if template is None:
-        return None
+    with _ADAPTIVE_TEMPLATES_LOCK:
+        templates = list(existing_templates) if existing_templates is not None else load_adaptive_templates(path)
+        template = build_adaptive_template(signature_text, plan, preferred_name=preferred_name)
+        if template is None:
+            return None
 
-    for index, existing in enumerate(templates):
-        if existing.key == template.key:
-            if rename_existing and preferred_name and existing.name != template.name:
-                updated = AdaptiveTemplate(
-                    key=existing.key,
-                    name=template.name,
-                    required_terms=existing.required_terms,
-                    optional_terms=existing.optional_terms,
-                    column_order=existing.column_order,
-                    header_labels=existing.header_labels,
-                    column_ratios=existing.column_ratios,
-                )
-                templates[index] = updated
-                save_adaptive_templates(templates, path)
-                return updated
-            return existing
+        for index, existing in enumerate(templates):
+            if existing.key == template.key:
+                if rename_existing and preferred_name and existing.name != template.name:
+                    updated = AdaptiveTemplate(
+                        key=existing.key,
+                        name=template.name,
+                        required_terms=existing.required_terms,
+                        optional_terms=existing.optional_terms,
+                        column_order=existing.column_order,
+                        header_labels=existing.header_labels,
+                        column_ratios=existing.column_ratios,
+                    )
+                    templates[index] = updated
+                    save_adaptive_templates(templates, path)
+                    return updated
+                return existing
 
-    templates.append(template)
-    save_adaptive_templates(templates, path)
-    return template
+        templates.append(template)
+        save_adaptive_templates(templates, path)
+        return template
 
 
 def build_adaptive_template(

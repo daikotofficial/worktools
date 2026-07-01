@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+import os
 from pathlib import Path
 
 import pdfplumber
@@ -134,6 +135,12 @@ class AnalysisResult:
     summary: AnalysisSummary
 
 
+@dataclass(frozen=True, slots=True)
+class PdfResourceProfile:
+    size_bytes: int
+    page_count: int
+
+
 class StatementAnalysisService:
     def __init__(self) -> None:
         self.dedicated_parsers = [
@@ -179,7 +186,8 @@ class StatementAnalysisService:
     ) -> AnalysisResult:
         set_pdf_password(pdf_path, pdf_password)
         try:
-            page_count = get_pdf_page_count(pdf_path)
+            resource_profile = validate_pdf_resource_limits(pdf_path)
+            page_count = resource_profile.page_count
             if training_bank_name:
                 known_parser_name = self._known_parser_name_for(pdf_path)
                 if known_parser_name:
@@ -676,3 +684,58 @@ def applied_category(
 def get_pdf_page_count(pdf_path: Path) -> int:
     with open_pdf(pdf_path) as pdf:
         return len(pdf.pages)
+
+
+def validate_pdf_resource_limits(pdf_path: Path) -> PdfResourceProfile:
+    size_bytes = pdf_path.stat().st_size
+    max_upload_bytes = max_upload_size_bytes()
+    if max_upload_bytes is not None and size_bytes > max_upload_bytes:
+        raise ValueError(
+            "This PDF is too large for the current server limit "
+            f"({format_bytes(size_bytes)} uploaded, {format_bytes(max_upload_bytes)} allowed). "
+            "Please export a smaller date range or split the statement and upload each part separately."
+        )
+
+    page_count = get_pdf_page_count(pdf_path)
+    max_pages = max_page_count()
+    if max_pages is not None and page_count > max_pages:
+        raise ValueError(
+            "This statement has too many pages for the current server limit "
+            f"({page_count} pages uploaded, {max_pages} pages allowed). "
+            "Please split the statement into smaller date ranges and upload each part separately."
+        )
+
+    return PdfResourceProfile(size_bytes=size_bytes, page_count=page_count)
+
+
+def max_upload_size_bytes() -> int | None:
+    max_mb = parse_positive_int_env("STATEMENT_ANALYZER_MAX_UPLOAD_MB", default=15)
+    if max_mb is None:
+        return None
+    return max_mb * 1024 * 1024
+
+
+def max_page_count() -> int | None:
+    return parse_positive_int_env("STATEMENT_ANALYZER_MAX_PAGES", default=75)
+
+
+def parse_positive_int_env(name: str, *, default: int) -> int | None:
+    raw_value = os.getenv(name)
+    if raw_value is None or raw_value.strip() == "":
+        return default
+    cleaned = raw_value.strip().lower()
+    if cleaned in {"0", "none", "off", "false", "unlimited"}:
+        return None
+    try:
+        parsed = int(cleaned)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else None
+
+
+def format_bytes(size_bytes: int) -> str:
+    size_mb = size_bytes / (1024 * 1024)
+    if size_mb >= 1:
+        return f"{size_mb:.1f} MB"
+    size_kb = size_bytes / 1024
+    return f"{size_kb:.1f} KB"

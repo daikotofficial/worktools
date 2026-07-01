@@ -527,7 +527,7 @@ async def analyze(
 
     job_id = uuid.uuid4().hex
     pdf_path = UPLOAD_DIR / f'{job_id}.pdf'
-    output_path = OUTPUT_DIR / f'{Path(filename).stem}_ANALYZED.xlsx'
+    output_path = analysis_output_path(job_id, filename)
 
     with pdf_path.open('wb') as buffer:
         shutil.copyfileobj(statement.file, buffer)
@@ -592,7 +592,7 @@ async def train_analyzer(
 
     job_id = uuid.uuid4().hex
     pdf_path = UPLOAD_DIR / f'{job_id}.pdf'
-    output_path = OUTPUT_DIR / f'{Path(filename).stem}_ANALYZED.xlsx'
+    output_path = analysis_output_path(job_id, filename)
 
     with pdf_path.open('wb') as buffer:
         shutil.copyfileobj(statement.file, buffer)
@@ -644,7 +644,7 @@ async def approve_review(token: str, request: Request) -> HTMLResponse:
     remember_approvals = str(form.get('remember_approvals', '')).lower() in {'on', 'true', '1', 'yes'}
 
     new_job_id = uuid.uuid4().hex
-    output_path = OUTPUT_DIR / f'{Path(job.filename).stem}_ANALYZED.xlsx'
+    output_path = analysis_output_path(new_job_id, job.filename)
     with _jobs_lock:
         _jobs[new_job_id] = JobState(
             filename=job.filename,
@@ -707,7 +707,7 @@ async def approve_adaptive_review(token: str, request: Request) -> HTMLResponse:
     training_bank_name = str(form.get('training_bank_name') or job.training_bank_name or '').strip() or None
 
     new_job_id = uuid.uuid4().hex
-    output_path = OUTPUT_DIR / f'{Path(job.filename).stem}_ANALYZED.xlsx'
+    output_path = analysis_output_path(new_job_id, job.filename)
     with _jobs_lock:
         _jobs[new_job_id] = JobState(
             filename=job.filename,
@@ -745,7 +745,7 @@ async def download(token: str) -> FileResponse:
         raise HTTPException(status_code=404, detail='File not found.')
     return FileResponse(
         job.output_path,
-        filename=job.output_path.name,
+        filename=download_filename(job.filename),
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
@@ -961,3 +961,13 @@ def friendly_job_error(exc: Exception) -> str:
         f'{exception_name}: The statement could not be analyzed automatically. '
         'Please try again, or upload a text-based PDF export if this file is scanned or image-only.'
     )
+
+
+def analysis_output_path(job_id: str, filename: str) -> Path:
+    stem = Path(filename or "statement").stem or "statement"
+    return OUTPUT_DIR / f'{stem}_{job_id}_ANALYZED.xlsx'
+
+
+def download_filename(filename: str) -> str:
+    stem = Path(filename or "statement").stem or "statement"
+    return f"{stem}_ANALYZED.xlsx"

@@ -78,6 +78,15 @@ Yes, this app can be deployed to Render as a Python web service. This repo inclu
 
 Uploads and generated Excel files use `STATEMENT_ANALYZER_RUNTIME_DIR`. On Render, the included config points it to `/tmp/daikot-worktools`, which is fine for immediate processing and download. For long-term file retention, add a Render disk or object storage later.
 
+The Render config uses the Standard instance and sets conservative processing limits:
+
+```bash
+STATEMENT_ANALYZER_MAX_UPLOAD_MB=50
+STATEMENT_ANALYZER_MAX_PAGES=250
+```
+
+These limits prevent very large statements from exhausting the app instance. Set either value to `0` or `unlimited` only on a server with enough memory.
+
 Detailed guide:
 
 - `docs/render_deployment.md`

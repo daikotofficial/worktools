@@ -2,7 +2,7 @@ services:
   - type: web
     name: daikot-worktools
     runtime: python
-    plan: free
+    plan: standard
     buildCommand: pip install -r requirements.txt
     startCommand: PYTHONPATH=src uvicorn statement_analyzer.webapp:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
@@ -12,6 +12,10 @@ services:
         value: 3.11.9
       - key: STATEMENT_ANALYZER_RUNTIME_DIR
         value: /tmp/daikot-worktools
+      - key: STATEMENT_ANALYZER_MAX_UPLOAD_MB
+        value: 50
+      - key: STATEMENT_ANALYZER_MAX_PAGES
+        value: 250
       - key: ADSENSE_CLIENT_ID
         sync: false
       - key: ADSENSE_PUBLISHER_ID

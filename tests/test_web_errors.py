@@ -7,9 +7,11 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from statement_analyzer.classifiers import rules as rules_module
 from statement_analyzer.models import TransactionDirection
+from statement_analyzer import service as service_module
 from statement_analyzer.service import AnalysisSummary, ReconciliationCheck, ReviewRow
 from statement_analyzer import webapp
 from statement_analyzer.webapp import friendly_job_error, refresh_summary_review_options
@@ -36,6 +38,39 @@ class WebErrorTests(unittest.TestCase):
         message = friendly_job_error(EmptyError())
         self.assertIn("EmptyError", message)
         self.assertIn("could not be analyzed automatically", message)
+
+    def test_resource_limit_rejects_large_pdf_before_page_scan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdf_path = Path(temp_dir) / "large.pdf"
+            pdf_path.write_bytes(b"0" * 2048)
+
+            with patch.dict("os.environ", {"STATEMENT_ANALYZER_MAX_UPLOAD_MB": "1"}, clear=False):
+                with patch.object(service_module, "get_pdf_page_count", return_value=1) as mocked_page_count:
+                    service_module.validate_pdf_resource_limits(pdf_path)
+                    mocked_page_count.assert_called_once_with(pdf_path)
+
+            with patch.dict("os.environ", {"STATEMENT_ANALYZER_MAX_UPLOAD_MB": "1"}, clear=False):
+                pdf_path.write_bytes(b"0" * (1024 * 1024 + 1))
+                with patch.object(service_module, "get_pdf_page_count") as mocked_page_count:
+                    with self.assertRaisesRegex(ValueError, "too large"):
+                        service_module.validate_pdf_resource_limits(pdf_path)
+                    mocked_page_count.assert_not_called()
+
+    def test_resource_limit_rejects_too_many_pages(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdf_path = Path(temp_dir) / "many-pages.pdf"
+            pdf_path.write_bytes(b"%PDF")
+
+            with patch.dict("os.environ", {"STATEMENT_ANALYZER_MAX_PAGES": "2"}, clear=False):
+                with patch.object(service_module, "get_pdf_page_count", return_value=3):
+                    with self.assertRaisesRegex(ValueError, "too many pages"):
+                        service_module.validate_pdf_resource_limits(pdf_path)
+
+    def test_analysis_output_path_is_unique_but_download_name_is_clean(self) -> None:
+        output_path = webapp.analysis_output_path("abc123", "statement.pdf")
+
+        self.assertEqual(output_path.name, "statement_abc123_ANALYZED.xlsx")
+        self.assertEqual(webapp.download_filename("statement.pdf"), "statement_ANALYZED.xlsx")
 
     def test_refresh_summary_review_options_includes_new_custom_category(self) -> None:
         original_rules_file = rules_module.RULES_FILE

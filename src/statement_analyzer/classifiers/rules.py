@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
+from threading import RLock
 
 from statement_analyzer.models import ClassifiedTransaction, StatementMetadata, Transaction, TransactionDirection
 
@@ -201,6 +202,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 RULES_FILE = PROJECT_ROOT / "config" / "business_rules.json"
 REVIEW_CONFIDENCE_THRESHOLD = 0.6
 CUSTOM_CATEGORIES_KEY = "custom_categories"
+_RULE_CONFIG_LOCK = RLock()
 
 
 @dataclass(slots=True)
@@ -484,10 +486,11 @@ def build_rules(items: list[dict]) -> list[MatchingRule]:
 
 
 def load_rule_config() -> dict:
-    if RULES_FILE.exists():
-        config = json.loads(RULES_FILE.read_text(encoding="utf-8"))
-    else:
-        config = {"inflow_rules": [], "outflow_rules": []}
+    with _RULE_CONFIG_LOCK:
+        if RULES_FILE.exists():
+            config = json.loads(RULES_FILE.read_text(encoding="utf-8"))
+        else:
+            config = {"inflow_rules": [], "outflow_rules": []}
 
     config.setdefault(CUSTOM_CATEGORIES_KEY, {})
     config[CUSTOM_CATEGORIES_KEY].setdefault("inflow", [])
@@ -496,8 +499,11 @@ def load_rule_config() -> dict:
 
 
 def save_rule_config(config: dict) -> None:
-    RULES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    RULES_FILE.write_text(json.dumps(config, indent=2), encoding="utf-8")
+    with _RULE_CONFIG_LOCK:
+        RULES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = RULES_FILE.with_suffix(f"{RULES_FILE.suffix}.tmp")
+        temp_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+        temp_path.replace(RULES_FILE)
 
 
 def learn_rules_from_approved_transactions(
@@ -508,37 +514,38 @@ def learn_rules_from_approved_transactions(
     if not approved_items:
         return 0
 
-    config = load_rule_config()
-    inflow_rules = list(config.get("inflow_rules", []))
-    outflow_rules = list(config.get("outflow_rules", []))
-    existing_keys = {
-        canonical_rule_key(rule)
-        for rule in [*inflow_rules, *outflow_rules]
-    }
+    with _RULE_CONFIG_LOCK:
+        config = load_rule_config()
+        inflow_rules = list(config.get("inflow_rules", []))
+        outflow_rules = list(config.get("outflow_rules", []))
+        existing_keys = {
+            canonical_rule_key(rule)
+            for rule in [*inflow_rules, *outflow_rules]
+        }
 
-    added = 0
-    for transaction, category in approved_items:
-        rule = build_learned_rule(transaction, category, account_name=account_name)
-        if not rule:
-            continue
-        key = canonical_rule_key(rule)
-        if key in existing_keys:
-            continue
+        added = 0
+        for transaction, category in approved_items:
+            rule = build_learned_rule(transaction, category, account_name=account_name)
+            if not rule:
+                continue
+            key = canonical_rule_key(rule)
+            if key in existing_keys:
+                continue
 
-        if transaction.direction == TransactionDirection.INFLOW:
-            inflow_rules.append(rule)
-        elif transaction.direction == TransactionDirection.OUTFLOW:
-            outflow_rules.append(rule)
-        else:
-            continue
+            if transaction.direction == TransactionDirection.INFLOW:
+                inflow_rules.append(rule)
+            elif transaction.direction == TransactionDirection.OUTFLOW:
+                outflow_rules.append(rule)
+            else:
+                continue
 
-        existing_keys.add(key)
-        added += 1
+            existing_keys.add(key)
+            added += 1
 
-    if added:
-        config["inflow_rules"] = inflow_rules
-        config["outflow_rules"] = outflow_rules
-        save_rule_config(config)
+        if added:
+            config["inflow_rules"] = inflow_rules
+            config["outflow_rules"] = outflow_rules
+            save_rule_config(config)
 
     return added
 
@@ -905,16 +912,17 @@ def add_custom_category(direction: str, category_name: str) -> str | None:
     if direction_key not in {"inflow", "outflow"}:
         return None
 
-    config = load_rule_config()
-    category_bucket = config.setdefault(CUSTOM_CATEGORIES_KEY, {}).setdefault(direction_key, [])
-    existing = {normalize_category_name(item).casefold() for item in category_bucket}
-    default_names = {
-        name.casefold()
-        for name in (INFLOW_CATEGORIES if direction_key == "inflow" else OUTFLOW_CATEGORIES)
-    }
-    if normalized_name.casefold() not in existing and normalized_name.casefold() not in default_names:
-        category_bucket.append(normalized_name)
-        save_rule_config(config)
+    with _RULE_CONFIG_LOCK:
+        config = load_rule_config()
+        category_bucket = config.setdefault(CUSTOM_CATEGORIES_KEY, {}).setdefault(direction_key, [])
+        existing = {normalize_category_name(item).casefold() for item in category_bucket}
+        default_names = {
+            name.casefold()
+            for name in (INFLOW_CATEGORIES if direction_key == "inflow" else OUTFLOW_CATEGORIES)
+        }
+        if normalized_name.casefold() not in existing and normalized_name.casefold() not in default_names:
+            category_bucket.append(normalized_name)
+            save_rule_config(config)
     return normalized_name
 
 
