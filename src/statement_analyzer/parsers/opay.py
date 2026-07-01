@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import pdfplumber
@@ -382,7 +382,10 @@ def parse_decimal(value: str | None) -> Decimal | None:
     cleaned = clean_text(value)
     if not cleaned or cleaned == "--":
         return Decimal("0")
-    return Decimal(cleaned.replace(",", ""))
+    try:
+        return Decimal(cleaned.replace(",", ""))
+    except InvalidOperation:
+        return None
 
 
 def format_decimal(value: Decimal) -> str:

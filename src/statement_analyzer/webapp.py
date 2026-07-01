@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from decimal import InvalidOperation
 import logging
 import os
 import shutil
@@ -1023,7 +1024,18 @@ def get_consolidation_session(token: str) -> ConsolidationSession | None:
 
 
 def friendly_job_error(exc: Exception) -> str:
+    if isinstance(exc, InvalidOperation):
+        return (
+            'The statement contains a malformed amount that could not be read safely. '
+            'Please confirm the PDF is text-based and not a scanned or corrupted export, then try again.'
+        )
+
     message = str(exc).strip()
+    if 'decimal.ConversionSyntax' in message:
+        return (
+            'The statement contains a malformed amount that could not be read safely. '
+            'Please confirm the PDF is text-based and not a scanned or corrupted export, then try again.'
+        )
     if message:
         return message
 
