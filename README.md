@@ -150,11 +150,10 @@ If `ADSENSE_CLIENT_ID` is set, the Google ad script is loaded. If `ADSENSE_PUBLI
 Footer social links are controlled by:
 
 ```bash
-SOCIAL_X_URL=""
-SOCIAL_FACEBOOK_URL=""
-SOCIAL_LINKEDIN_URL=""
-SOCIAL_INSTAGRAM_URL=""
-SOCIAL_TIKTOK_URL=""
+SOCIAL_X_URL="https://x.com/daikotofficial"
+SOCIAL_INSTAGRAM_URL="https://www.instagram.com/daikotofficial/"
+SOCIAL_WHATSAPP_URL="https://wa.me/2349076669331"
+SOCIAL_LINKEDIN_URL="https://www.linkedin.com/company/daikotofficial"
 ```
 
 ## Current focus

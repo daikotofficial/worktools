@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Daikot Worktools{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Daikot Worktools brings statement analysis, workbook consolidation, and practical business tools into one clean workspace.{% endblock %}" />
+  <link rel="icon" href="/static/assets/daikot-worktools-logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/static/assets/daikot-worktools-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -18,16 +20,14 @@
   <div class="page-shell">
     <header class="site-header">
       <a class="brand-mark" href="/" aria-label="Daikot Worktools home">
-        <span class="brand-badge">DW</span>
-        <span class="brand-copy">
-          <strong>Daikot Worktools</strong>
-          <small>Business operations suite</small>
-        </span>
+        <img class="brand-logo-image" src="/static/assets/daikot-worktools-logo.png" alt="Daikot Work Tools" />
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="/" {% if active_page == 'home' %}aria-current="page"{% endif %}>Home</a>
         <a href="/analyze-bank-statement" {% if active_page == 'analysis' %}aria-current="page"{% endif %}>Statement Analysis</a>
         <a href="/consolidate" {% if active_page == 'consolidation' %}aria-current="page"{% endif %}>Consolidation</a>
+        <a href="/populate-vat-template" {% if active_page == 'vat-template' %}aria-current="page"{% endif %}>Populate VAT Template</a>
+        <a href="/populate-cit-template" {% if active_page == 'cit-template' %}aria-current="page"{% endif %}>Populate CIT Template</a>
         <a href="/train-analyzer" {% if active_page == 'training' %}aria-current="page"{% endif %}>Train Model</a>
         <a href="/afs" {% if active_page == 'afs' %}aria-current="page"{% endif %}>AFS</a>
       </nav>
@@ -40,11 +40,7 @@
       <div class="footer-top">
         <div class="footer-brand-block">
           <a class="footer-logo" href="/">
-            <span class="brand-badge">DW</span>
-            <span>
-              <strong>Daikot Worktools</strong>
-              <small>Business operations suite</small>
-            </span>
+            <img class="footer-logo-image" src="/static/assets/daikot-worktools-logo.png" alt="Daikot Work Tools" />
           </a>
           <p>Statement analysis, consolidation, training, and more work tools under one clean workspace.</p>
           <a class="footer-phone" href="tel:+2349076669331">09076669331</a>
@@ -55,6 +51,8 @@
           <a href="/">Home</a>
           <a href="/analyze-bank-statement">Statement Analysis</a>
           <a href="/consolidate">Consolidation</a>
+          <a href="/populate-vat-template">Populate VAT Template</a>
+          <a href="/populate-cit-template">Populate CIT Template</a>
           <a href="/train-analyzer">Train Model</a>
           <a href="/afs">AFS</a>
         </nav>
@@ -63,8 +61,9 @@
           <strong>Tools</strong>
           <a href="/analyze-bank-statement">Analyze PDF</a>
           <a href="/consolidate">Merge Workbooks</a>
+          <a href="/populate-vat-template">VAT Template</a>
+          <a href="/populate-cit-template">CIT Template</a>
           <a href="/train-analyzer">Train Layout</a>
-          <a href="/sitemap.xml">Sitemap</a>
         </nav>
 
         <nav class="footer-column" aria-label="Company links">
@@ -79,8 +78,6 @@
           <strong>Legal</strong>
           <a href="/privacy">Privacy Policy</a>
           <a href="/terms">Terms</a>
-          <a href="/ads.txt">Ads.txt</a>
-          <a href="/robots.txt">Robots.txt</a>
         </nav>
       </div>
 

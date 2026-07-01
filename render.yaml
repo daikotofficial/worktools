@@ -22,11 +22,9 @@ services:
         sync: false
       - key: SOCIAL_X_URL
         sync: false
-      - key: SOCIAL_FACEBOOK_URL
-        sync: false
       - key: SOCIAL_LINKEDIN_URL
         sync: false
       - key: SOCIAL_INSTAGRAM_URL
         sync: false
-      - key: SOCIAL_TIKTOK_URL
+      - key: SOCIAL_WHATSAPP_URL
         sync: false

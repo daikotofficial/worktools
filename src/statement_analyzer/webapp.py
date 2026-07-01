@@ -42,11 +42,10 @@ CONSOLIDATION_UPLOAD_DIR = RUNTIME_DIR / 'consolidation_uploads'
 ADSENSE_CLIENT_ID = os.getenv('ADSENSE_CLIENT_ID', '').strip()
 ADSENSE_PUBLISHER_ID = os.getenv('ADSENSE_PUBLISHER_ID', '').strip()
 SOCIAL_LINKS = (
-    ("X", os.getenv("SOCIAL_X_URL", "").strip()),
-    ("Facebook", os.getenv("SOCIAL_FACEBOOK_URL", "").strip()),
-    ("LinkedIn", os.getenv("SOCIAL_LINKEDIN_URL", "").strip()),
-    ("Instagram", os.getenv("SOCIAL_INSTAGRAM_URL", "").strip()),
-    ("TikTok", os.getenv("SOCIAL_TIKTOK_URL", "").strip()),
+    ("X", os.getenv("SOCIAL_X_URL", "https://x.com/daikotofficial").strip()),
+    ("Instagram", os.getenv("SOCIAL_INSTAGRAM_URL", "https://www.instagram.com/daikotofficial/").strip()),
+    ("WhatsApp", os.getenv("SOCIAL_WHATSAPP_URL", "https://wa.me/2349076669331").strip()),
+    ("LinkedIn", os.getenv("SOCIAL_LINKEDIN_URL", "https://www.linkedin.com/company/daikotofficial").strip()),
 )
 
 for directory in (UPLOAD_DIR, OUTPUT_DIR, CONSOLIDATION_UPLOAD_DIR):
@@ -153,6 +152,28 @@ def page_context(
         'supported_layouts': supported_layouts_for_page(),
         'pending_layouts': PENDING_LAYOUTS,
     }
+
+
+def template_tool_context(
+    request: Request,
+    *,
+    tool_name: str,
+    active_page: str,
+    description: str,
+) -> dict[str, object]:
+    context = page_context(
+        request,
+        active_page=active_page,
+        header_cta_href='/analyze-bank-statement',
+        header_cta_label='Analyze Statement',
+    )
+    context.update(
+        {
+            'tool_name': tool_name,
+            'tool_description': description,
+        }
+    )
+    return context
 
 
 def supported_layouts_for_page() -> tuple[dict[str, str], ...]:
@@ -264,6 +285,34 @@ async def afs_workspace(request: Request) -> HTMLResponse:
     )
 
 
+@app.get('/populate-vat-template', response_class=HTMLResponse)
+async def populate_vat_template(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request=request,
+        name='coming_soon.html',
+        context=template_tool_context(
+            request,
+            tool_name='Populate VAT Template',
+            active_page='vat-template',
+            description='Upload transaction data and prepare VAT-ready schedules from a clean template workflow.',
+        ),
+    )
+
+
+@app.get('/populate-cit-template', response_class=HTMLResponse)
+async def populate_cit_template(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request=request,
+        name='coming_soon.html',
+        context=template_tool_context(
+            request,
+            tool_name='Populate CIT Template',
+            active_page='cit-template',
+            description='Prepare company income tax schedules with a guided template population workflow.',
+        ),
+    )
+
+
 @app.get('/privacy', response_class=HTMLResponse)
 async def privacy_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
@@ -319,10 +368,26 @@ async def ads_txt() -> PlainTextResponse:
     return PlainTextResponse(f"google.com, {ADSENSE_PUBLISHER_ID}, DIRECT, f08c47fec0942fa0\n")
 
 
+@app.get('/favicon.ico')
+async def favicon() -> FileResponse:
+    return FileResponse(STATIC_DIR / 'assets' / 'daikot-worktools-logo.png', media_type='image/png')
+
+
 @app.get('/sitemap.xml', response_class=PlainTextResponse)
 async def sitemap_xml(request: Request) -> PlainTextResponse:
     base_url = str(request.base_url).rstrip('/')
-    paths = ('/', '/analyze-bank-statement', '/consolidate', '/train-analyzer', '/afs', '/privacy', '/terms', '/contact')
+    paths = (
+        '/',
+        '/analyze-bank-statement',
+        '/consolidate',
+        '/train-analyzer',
+        '/populate-vat-template',
+        '/populate-cit-template',
+        '/afs',
+        '/privacy',
+        '/terms',
+        '/contact',
+    )
     urls = "\n".join(f"  <url><loc>{base_url}{path}</loc></url>" for path in paths)
     return PlainTextResponse(
         f'<?xml version="1.0" encoding="UTF-8"?>\n'

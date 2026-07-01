@@ -56,14 +56,13 @@ ADSENSE_PUBLISHER_ID=pub-xxxxxxxxxxxxxxxx
 Optional for footer social links:
 
 ```bash
-SOCIAL_X_URL=
-SOCIAL_FACEBOOK_URL=
-SOCIAL_LINKEDIN_URL=
-SOCIAL_INSTAGRAM_URL=
-SOCIAL_TIKTOK_URL=
+SOCIAL_X_URL=https://x.com/daikotofficial
+SOCIAL_INSTAGRAM_URL=https://www.instagram.com/daikotofficial/
+SOCIAL_WHATSAPP_URL=https://wa.me/2349076669331
+SOCIAL_LINKEDIN_URL=https://www.linkedin.com/company/daikotofficial
 ```
 
-If social URLs are not set, the footer social buttons route to the Contact page instead of fake accounts.
+If social URLs are not set, Daikot defaults are used for the public footer.
 
 ## Standard Plan Notes
 
