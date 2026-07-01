@@ -72,6 +72,21 @@ class WebErrorTests(unittest.TestCase):
         self.assertEqual(output_path.name, "statement_abc123_ANALYZED.xlsx")
         self.assertEqual(webapp.download_filename("statement.pdf"), "statement_ANALYZED.xlsx")
 
+    def test_find_analysis_output_by_token_recovers_generated_workbook(self) -> None:
+        original_output_dir = webapp.OUTPUT_DIR
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            webapp.OUTPUT_DIR = Path(temp_dir)
+            output_path = Path(temp_dir) / "bank_statement_abc123_ANALYZED.xlsx"
+            output_path.write_bytes(b"excel")
+
+            try:
+                self.assertEqual(webapp.find_analysis_output_by_token("abc123"), output_path)
+                self.assertEqual(webapp.recovered_download_filename(output_path), "bank_statement_ANALYZED.xlsx")
+                self.assertIsNone(webapp.find_analysis_output_by_token("../abc123"))
+            finally:
+                webapp.OUTPUT_DIR = original_output_dir
+
     def test_refresh_summary_review_options_includes_new_custom_category(self) -> None:
         original_rules_file = rules_module.RULES_FILE
 

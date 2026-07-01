@@ -741,11 +741,30 @@ async def approve_adaptive_review(token: str, request: Request) -> HTMLResponse:
 @app.get('/download/{token}')
 async def download(token: str) -> FileResponse:
     job = get_job(token)
-    if not job or job.status != 'completed' or not job.output_path.exists():
-        raise HTTPException(status_code=404, detail='File not found.')
+    output_path = None
+    filename = None
+    if job and job.status == 'completed' and job.output_path.exists():
+        output_path = job.output_path
+        filename = download_filename(job.filename)
+    else:
+        output_path = find_analysis_output_by_token(token)
+        filename = recovered_download_filename(output_path) if output_path else None
+
+    if output_path is None or not output_path.exists():
+        logger.warning(
+            "Download missing for token %s: job_found=%s job_status=%s job_output=%s",
+            token,
+            bool(job),
+            job.status if job else None,
+            str(job.output_path) if job else None,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail='The generated workbook is no longer available. Please run the analysis again and download it after completion.',
+        )
     return FileResponse(
-        job.output_path,
-        filename=download_filename(job.filename),
+        output_path,
+        filename=filename or output_path.name,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
@@ -971,3 +990,19 @@ def analysis_output_path(job_id: str, filename: str) -> Path:
 def download_filename(filename: str) -> str:
     stem = Path(filename or "statement").stem or "statement"
     return f"{stem}_ANALYZED.xlsx"
+
+
+def find_analysis_output_by_token(token: str) -> Path | None:
+    if not token or any(character in token for character in "/\\"):
+        return None
+    matches = sorted(OUTPUT_DIR.glob(f"*_{token}_ANALYZED.xlsx"))
+    return matches[0] if matches else None
+
+
+def recovered_download_filename(output_path: Path) -> str:
+    suffix = "_ANALYZED"
+    stem = output_path.stem
+    parts = stem.rsplit("_", 2)
+    if len(parts) == 3 and parts[2] == "ANALYZED":
+        return f"{parts[0]}{suffix}.xlsx"
+    return output_path.name
