@@ -31,6 +31,14 @@ class WebErrorTests(unittest.TestCase):
         message = friendly_job_error(PDFPasswordIncorrect())
         self.assertIn("password-protected", message)
 
+    def test_password_error_with_library_message_still_gives_retry_instruction(self) -> None:
+        PDFPasswordIncorrect = type("PDFPasswordIncorrect", (Exception,), {})
+        message = friendly_job_error(PDFPasswordIncorrect("Incorrect password for encrypted PDF"))
+        self.assertEqual(
+            message,
+            "This PDF is password-protected. Enter the PDF password and upload it again.",
+        )
+
     def test_empty_unknown_exception_gets_fallback_message(self) -> None:
         class EmptyError(Exception):
             pass

@@ -42,7 +42,7 @@
             </label>
             <label class="review-search upload-password">
               <span class="field-label">PDF Password</span>
-              <input name="pdf_password" type="password" placeholder="Optional, only if the statement is protected" />
+              <input name="pdf_password" type="password" autocomplete="off" placeholder="Enter it if the statement is protected" />
             </label>
             <button class="primary-btn" type="submit" id="train-btn">Train Model</button>
             {% if filename %}
@@ -62,7 +62,7 @@
             </label>
             <label class="review-search upload-password">
               <span class="field-label">PDF Password</span>
-              <input name="pdf_password" type="password" placeholder="Optional, only if the statement is protected" />
+              <input name="pdf_password" type="password" autocomplete="off" placeholder="Enter it if the statement is protected" />
             </label>
             <button class="primary-btn" type="submit" id="analyze-btn">Analyze Statement</button>
             {% if filename %}

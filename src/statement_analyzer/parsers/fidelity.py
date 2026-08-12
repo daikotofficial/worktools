@@ -98,7 +98,10 @@ class FidelityStatementParser(StatementParser):
 
     def can_parse(self, pdf_path: Path) -> bool:
         profile = detect_layout(pdf_path)
-        return profile is not None and profile.key == "fidelity_statement"
+        return profile is not None and profile.key in {
+            "fidelity_statement",
+            "fidelity_account_statement_variant",
+        }
 
     def parse(self, pdf_path: Path) -> list[Transaction]:
         self.last_metadata = self._extract_metadata(pdf_path)
@@ -229,14 +232,15 @@ class FidelityStatementParser(StatementParser):
             flags=re.IGNORECASE,
         )
 
+        variant = "Opening Balance" in first_page_text and "From " in first_page_text
         return StatementMetadata(
-            account_name=extract_account_name(first_page_layout_text),
+            account_name=(extract_variant_account_name(first_page_text) if variant else extract_account_name(first_page_layout_text)),
             account_number=extract_regex(first_page_text, r"Account:\s*(\d+)"),
             currency=extract_regex(first_page_text, r"Currency:\s*([A-Z]{3})"),
-            opening_balance=parse_decimal(extract_regex(first_page_text, r"Beginning Balance\s+([0-9,]+\.\d{2})")),
+            opening_balance=parse_decimal(extract_regex(first_page_text, r"(?:Beginning|Opening) Balance\s+([0-9,]+\.\d{2})")),
             total_debit=parse_decimal(extract_regex(first_page_text, r"Total\s+\d+\s+[0-9,]+\s+\d+\s+([0-9,]+)")),
             total_credit=parse_decimal(extract_regex(first_page_text, r"Total\s+\d+\s+([0-9,]+)\s+\d+\s+[0-9,]+")),
-            closing_balance=parse_decimal(extract_regex(first_page_text, r"Ending Balance\s+([0-9,]+\.\d{2})")),
+            closing_balance=parse_decimal(extract_regex(first_page_text, r"(?:Ending|Closing) Balance\s+([0-9,]+\.\d{2})")),
             period_start=parse_period_date(period_match.group(1)) if period_match else None,
             period_end=parse_period_date(period_match.group(2)) if period_match else None,
         )
@@ -402,6 +406,15 @@ def extract_account_name(layout_text: str) -> str | None:
     if not name_lines:
         return None
     return clean_text(" ".join(name_lines))
+
+
+def extract_variant_account_name(text: str) -> str | None:
+    match = re.search(
+        r"Currency:\s*[A-Z]{3}\s+Type:\s*\S+\s+(.*?)\s+Transactions\b",
+        clean_text(text),
+        flags=re.IGNORECASE,
+    )
+    return clean_text(match.group(1)) if match else None
 
 
 def group_words_into_rows(words: list[dict]) -> list[list[dict]]:

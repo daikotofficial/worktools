@@ -1236,6 +1236,12 @@ def get_cit_session(token: str) -> CitSession | None:
 
 
 def friendly_job_error(exc: Exception) -> str:
+    # Check this before returning the exception's raw message. PDF libraries
+    # do not use one consistent exception message for encrypted files, and
+    # exposing it gives users no actionable way to retry with their password.
+    if is_password_error(exc):
+        return 'This PDF is password-protected. Enter the PDF password and upload it again.'
+
     if isinstance(exc, InvalidOperation):
         return (
             'The statement contains a malformed amount that could not be read safely. '
@@ -1251,17 +1257,12 @@ def friendly_job_error(exc: Exception) -> str:
     if message:
         return message
 
-    if is_password_error(exc):
-        return 'This PDF is password-protected. Enter the PDF password and upload it again.'
-
     exception_name = type(exc).__name__
     if exception_name == 'AssertionError':
         return (
             'The statement could not be analyzed because the PDF text extraction returned an unexpected structure. '
             'This usually happens with scanned statements, protected PDFs, or a new layout family that still needs review.'
         )
-    if exception_name in {'PDFPasswordIncorrect', 'PasswordProtected'}:
-        return 'This PDF is password-protected. Please remove the password and upload it again.'
     if exception_name in {'PDFSyntaxError', 'PSEOF', 'PDFEncryptionError'}:
         return 'This PDF could not be read cleanly. Please export a fresh text-based statement PDF and try again.'
 
