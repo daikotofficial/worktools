@@ -26,6 +26,7 @@ SUPPORTED_SAMPLES = (
     ("ACTION_Jaiz 1.pdf", "jaiz", 4),
     ("LOFTYINC ALLIED PARTNERS LIMITED-1775829475539.pdf", "customer-account-statement", 4),
     ("0806772213_2023-01-01_2024-01-01_transaction.pdf", "summary-details", 4),
+    ("WISDOM KWATI- ACCOUNT STATEMENT LOCATION.pdf", "keystone", 4),
 )
 
 

@@ -35,6 +35,7 @@ PARSER_BANK_NAMES = {
     "wema": "Wema Bank",
     "moniepoint": "Moniepoint",
     "opay": "OPay",
+    "keystone": "Keystone Bank",
 }
 
 

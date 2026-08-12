@@ -31,6 +31,7 @@ from statement_analyzer.parsers.generic import (
 from statement_analyzer.parsers.globus import GlobusStatementParser
 from statement_analyzer.parsers.gtbank import GTBankStatementParser
 from statement_analyzer.parsers.jaiz import JaizStatementParser
+from statement_analyzer.parsers.keystone import KeystoneStatementParser
 from statement_analyzer.parsers.lotus import LotusStatementParser
 from statement_analyzer.parsers.moniepoint import MoniepointStatementParser
 from statement_analyzer.parsers.opay import OPayStatementParser
@@ -158,6 +159,7 @@ class StatementAnalysisService:
             StandardCharteredStatementParser(),
             TajStatementParser(),
             JaizStatementParser(),
+            KeystoneStatementParser(),
             CustomerAccountStatementParser(),
             SummaryDetailsStatementParser(),
             PostingValueLedgerStatementParser(),
@@ -741,7 +743,7 @@ def max_upload_size_bytes() -> int | None:
 
 
 def max_page_count() -> int | None:
-    return parse_positive_int_env("STATEMENT_ANALYZER_MAX_PAGES", default=75)
+    return parse_positive_int_env("STATEMENT_ANALYZER_MAX_PAGES", default=120)
 
 
 def parse_positive_int_env(name: str, *, default: int) -> int | None:

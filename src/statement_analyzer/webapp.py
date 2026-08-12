@@ -22,6 +22,12 @@ from statement_analyzer.consolidation import (
     consolidate_analyzed_workbooks,
     inspect_analyzed_workbook,
 )
+from statement_analyzer.cit import (
+    CitAnalysisResult,
+    analyze_cit_template,
+    parse_review_mappings,
+    populate_cit_workbook,
+)
 from statement_analyzer.models import TransactionDirection
 from statement_analyzer.parsers.generic import AdaptiveReviewRequired, load_adaptive_templates
 from statement_analyzer.parsers.pdf_utils import is_password_error
@@ -40,6 +46,9 @@ RUNTIME_DIR = Path(os.getenv('STATEMENT_ANALYZER_RUNTIME_DIR', '/tmp/statement_a
 UPLOAD_DIR = RUNTIME_DIR / 'uploads'
 OUTPUT_DIR = RUNTIME_DIR / 'outputs'
 CONSOLIDATION_UPLOAD_DIR = RUNTIME_DIR / 'consolidation_uploads'
+CIT_UPLOAD_DIR = RUNTIME_DIR / 'cit_uploads'
+MAX_CONSOLIDATION_FILES = 25
+MAX_CONSOLIDATION_FILE_BYTES = 50 * 1024 * 1024
 ADSENSE_CLIENT_ID = os.getenv('ADSENSE_CLIENT_ID', '').strip()
 ADSENSE_PUBLISHER_ID = os.getenv('ADSENSE_PUBLISHER_ID', '').strip()
 SOCIAL_LINKS = (
@@ -49,7 +58,7 @@ SOCIAL_LINKS = (
     ("LinkedIn", os.getenv("SOCIAL_LINKEDIN_URL", "https://www.linkedin.com/company/daikotofficial").strip()),
 )
 
-for directory in (UPLOAD_DIR, OUTPUT_DIR, CONSOLIDATION_UPLOAD_DIR):
+for directory in (UPLOAD_DIR, OUTPUT_DIR, CONSOLIDATION_UPLOAD_DIR, CIT_UPLOAD_DIR):
     directory.mkdir(parents=True, exist_ok=True)
 
 PRODUCT_NAME = 'Daikot Worktools'
@@ -78,6 +87,7 @@ SUPPORTED_LAYOUTS = (
     {"bank": "Clear Junction", "status": "Live", "notes": "Signed Amount rows are split into inflow/outflow columns with transaction fees kept separate."},
     {"bank": "Wema Treasure", "status": "Live", "notes": "Individual Wema Treasure statements parse with account metadata, totals, and balances."},
     {"bank": "Moniepoint", "status": "Live", "notes": "Business account statement exports parse across long multi-page PDFs with timestamped transaction rows."},
+    {"bank": "Keystone Bank", "status": "Live", "notes": "Corporate Date / V. Date / Narration / Ref / Debit / Credit / Balance statements parse across long multi-page PDFs with exact totals and balance validation."},
     {"bank": "Adaptive Unknown PDF", "status": "Guarded", "notes": "New text-based statements can now fall back to header inference, confidence-gated parsing, and saved reusable layout templates."},
 )
 
@@ -105,11 +115,24 @@ class ConsolidationSession:
     error: str | None = None
 
 
+@dataclass(slots=True)
+class CitSession:
+    template_filename: str
+    afs_filename: str
+    template_path: Path
+    afs_path: Path
+    output_path: Path
+    analysis: CitAnalysisResult
+    error: str | None = None
+
+
 _jobs: dict[str, JobState] = {}
 _jobs_lock = Lock()
 _analysis_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='statement-analysis')
 _consolidation_sessions: dict[str, ConsolidationSession] = {}
 _consolidation_lock = Lock()
+_cit_sessions: dict[str, CitSession] = {}
+_cit_lock = Lock()
 
 
 def page_context(
@@ -227,6 +250,29 @@ def consolidation_page_context(
     }
 
 
+def cit_page_context(
+    request: Request,
+    *,
+    analysis: CitAnalysisResult | None = None,
+    session_token: str | None = None,
+    output_ready: bool = False,
+    error: str | None = None,
+) -> dict[str, object]:
+    return {
+        'request': request,
+        'product_name': PRODUCT_NAME,
+        'adsense_client_id': ADSENSE_CLIENT_ID,
+        'social_links': social_links_for_page(),
+        'active_page': 'cit-template',
+        'header_cta_href': '/analyze-bank-statement',
+        'header_cta_label': 'Analyze Statement',
+        'analysis': analysis,
+        'session_token': session_token,
+        'output_ready': output_ready,
+        'error': error,
+    }
+
+
 def refresh_summary_review_options(summary: AnalysisSummary) -> AnalysisSummary:
     for row in summary.review_rows:
         row.category_options = list(category_options_for(TransactionDirection(row.direction)))
@@ -304,12 +350,135 @@ async def populate_vat_template(request: Request) -> HTMLResponse:
 async def populate_cit_template(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
-        name='coming_soon.html',
-        context=template_tool_context(
+        name='cit.html',
+        context=cit_page_context(request),
+    )
+
+
+@app.post('/populate-cit-template', response_class=HTMLResponse)
+async def prepare_cit_template(
+    request: Request,
+    nrs_template: UploadFile = File(...),
+    audited_financial_statement: UploadFile = File(...),
+) -> HTMLResponse:
+    template_filename = Path(nrs_template.filename or 'nrs-cit-template.xlsx').name
+    afs_filename = Path(audited_financial_statement.filename or 'audited-financial-statement.pdf').name
+
+    if Path(template_filename).suffix.lower() not in {'.xlsx', '.xlsm'}:
+        return templates.TemplateResponse(
+            request=request,
+            name='cit.html',
+            context=cit_page_context(request, error='Please upload the NRS CIT Excel template as .xlsx or .xlsm.'),
+            status_code=400,
+        )
+    if Path(afs_filename).suffix.lower() != '.pdf':
+        return templates.TemplateResponse(
+            request=request,
+            name='cit.html',
+            context=cit_page_context(request, error='Please upload the audited financial statement as a PDF.'),
+            status_code=400,
+        )
+
+    session_token = uuid.uuid4().hex
+    session_dir = CIT_UPLOAD_DIR / session_token
+    session_dir.mkdir(parents=True, exist_ok=True)
+    template_path = session_dir / f'template_{template_filename}'
+    afs_path = session_dir / f'afs_{afs_filename}'
+    output_path = OUTPUT_DIR / f'CIT_{session_token}.xlsx'
+
+    with template_path.open('wb') as buffer:
+        shutil.copyfileobj(nrs_template.file, buffer)
+    with afs_path.open('wb') as buffer:
+        shutil.copyfileobj(audited_financial_statement.file, buffer)
+
+    try:
+        analysis = analyze_cit_template(
+            template_path,
+            afs_path,
+            template_filename=template_filename,
+            afs_filename=afs_filename,
+        )
+    except Exception as exc:
+        logger.exception("CIT template analysis failed for %s and %s", template_filename, afs_filename)
+        return templates.TemplateResponse(
+            request=request,
+            name='cit.html',
+            context=cit_page_context(request, error=f'CIT analysis failed: {exc}'),
+            status_code=400,
+        )
+
+    session = CitSession(
+        template_filename=template_filename,
+        afs_filename=afs_filename,
+        template_path=template_path,
+        afs_path=afs_path,
+        output_path=output_path,
+        analysis=analysis,
+    )
+    with _cit_lock:
+        _cit_sessions[session_token] = session
+
+    return templates.TemplateResponse(
+        request=request,
+        name='cit.html',
+        context=cit_page_context(
             request,
-            tool_name='Populate CIT Template',
-            active_page='cit-template',
-            description='Prepare company income tax schedules with a guided template population workflow.',
+            analysis=analysis,
+            session_token=session_token,
+        ),
+    )
+
+
+@app.post('/populate-cit-template/{token}/complete', response_class=HTMLResponse)
+async def complete_cit_template(token: str, request: Request) -> HTMLResponse:
+    session = get_cit_session(token)
+    if not session:
+        raise HTTPException(status_code=404, detail='CIT session not found.')
+
+    form = await request.form()
+    raw_items: list[tuple[str, str]] = []
+    index = 0
+    while f'mapping_target_{index}' in form:
+        raw_items.append((str(form.get(f'mapping_target_{index}', '')), str(form.get(f'mapping_amount_{index}', ''))))
+        index += 1
+    mappings = parse_review_mappings(raw_items)
+    if not mappings:
+        return templates.TemplateResponse(
+            request=request,
+            name='cit.html',
+            context=cit_page_context(
+                request,
+                analysis=session.analysis,
+                session_token=token,
+                error='Please keep at least one reviewed CIT mapping before generating the workbook.',
+            ),
+            status_code=400,
+        )
+
+    try:
+        populate_cit_workbook(session.template_path, session.output_path, mappings)
+    except Exception as exc:
+        logger.exception("Failed to populate CIT workbook for token %s", token)
+        return templates.TemplateResponse(
+            request=request,
+            name='cit.html',
+            context=cit_page_context(
+                request,
+                analysis=session.analysis,
+                session_token=token,
+                error=f'CIT workbook generation failed: {exc}',
+            ),
+            status_code=400,
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name='cit.html',
+        context=cit_page_context(
+            request,
+            analysis=session.analysis,
+            session_token=token,
+            output_ready=True,
         ),
     )
 
@@ -421,6 +590,16 @@ async def prepare_consolidation(
             ),
             status_code=400,
         )
+    if len(statements) > MAX_CONSOLIDATION_FILES:
+        return templates.TemplateResponse(
+            request=request,
+            name='consolidate.html',
+            context=consolidation_page_context(
+                request,
+                error=f'Please upload no more than {MAX_CONSOLIDATION_FILES} workbooks at a time.',
+            ),
+            status_code=400,
+        )
 
     session_token = uuid.uuid4().hex
     session_dir = CONSOLIDATION_UPLOAD_DIR / session_token
@@ -442,8 +621,24 @@ async def prepare_consolidation(
             )
 
         workbook_path = session_dir / f'{index}_{filename}'
-        with workbook_path.open('wb') as buffer:
-            shutil.copyfileobj(statement.file, buffer)
+        total_bytes = 0
+        try:
+            with workbook_path.open('wb') as buffer:
+                while chunk := await statement.read(1024 * 1024):
+                    total_bytes += len(chunk)
+                    if total_bytes > MAX_CONSOLIDATION_FILE_BYTES:
+                        raise ValueError(
+                            f'{filename} is larger than {MAX_CONSOLIDATION_FILE_BYTES // (1024 * 1024)} MB.'
+                        )
+                    buffer.write(chunk)
+        except ValueError as exc:
+            workbook_path.unlink(missing_ok=True)
+            return templates.TemplateResponse(
+                request=request,
+                name='consolidate.html',
+                context=consolidation_page_context(request, error=str(exc)),
+                status_code=413,
+            )
 
         try:
             previews.append(inspect_analyzed_workbook(workbook_path, filename=filename))
@@ -847,6 +1042,18 @@ async def download_consolidated(token: str) -> FileResponse:
     )
 
 
+@app.get('/download-cit-template/{token}')
+async def download_cit_template(token: str) -> FileResponse:
+    session = get_cit_session(token)
+    if not session or not session.output_path.exists():
+        raise HTTPException(status_code=404, detail='File not found.')
+    return FileResponse(
+        session.output_path,
+        filename=f'POPULATED_{session.template_filename}',
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
 @app.get('/result/{token}', response_class=HTMLResponse)
 async def result(token: str, request: Request) -> HTMLResponse:
     job = get_job(token)
@@ -1021,6 +1228,11 @@ def get_job(job_id: str) -> JobState | None:
 def get_consolidation_session(token: str) -> ConsolidationSession | None:
     with _consolidation_lock:
         return _consolidation_sessions.get(token)
+
+
+def get_cit_session(token: str) -> CitSession | None:
+    with _cit_lock:
+        return _cit_sessions.get(token)
 
 
 def friendly_job_error(exc: Exception) -> str:

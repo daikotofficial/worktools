@@ -45,6 +45,15 @@ LAYOUT_PROFILES: tuple[LayoutProfile, ...] = (
         notes='Stanbic IBTC export with Posted Date / Create Date / Narration / Debit / Credit / Balance columns.',
     ),
     LayoutProfile(
+        key='keystone_statement',
+        label='Keystone Bank account statement layout',
+        bank_name='Keystone Bank',
+        sample_files=('WISDOM KWATI- ACCOUNT STATEMENT LOCATION.pdf',),
+        required_terms=('KEYSTONE BANK', 'ACCOUNT STATEMENT SUMMARY DETAILS', 'DATE', 'NARRATION', 'DEBIT', 'CREDIT', 'BALANCE'),
+        optional_terms=('TOTAL DEBITS', 'TOTAL CREDITS', 'CURRENCY NAIRA', 'PRIVATE & CONFIDENTIAL'),
+        notes='Keystone corporate statement with Date / V. Date / Narration / Ref / Debit / Credit / Balance and wrapped rows.',
+    ),
+    LayoutProfile(
         key='uba_statement',
         label='UBA statement layout',
         bank_name='UBA',

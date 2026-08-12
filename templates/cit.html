@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Populate CIT Template | Daikot Worktools{% endblock %}
+{% block meta_description %}Populate an NRS CIT template from an audited financial statement with review-first mapping controls.{% endblock %}
+
+{% block content %}
+      <section class="workspace-shell" id="cit-workspace">
+        <div class="workspace-copy">
+          <p class="eyebrow">Populate CIT Template</p>
+          <h1>Review before filing.</h1>
+          <p class="lead workspace-lead">
+            Upload the NRS template and audited accounts, then approve the mappings before Excel generation.
+          </p>
+          <div class="workspace-steps">
+            <span>Template</span>
+            <span>Review</span>
+            <span>Excel</span>
+          </div>
+        </div>
+        <div class="workspace-panel">
+          <form class="upload-card" action="/populate-cit-template" method="post" enctype="multipart/form-data" id="cit-form">
+            <label class="upload-zone compact-upload-zone" for="nrs-template">
+              <input id="nrs-template" name="nrs_template" type="file" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12" required data-file-input data-file-label-target="cit-template-label" />
+              <span class="upload-kicker">NRS CIT Excel template</span>
+              <strong id="cit-template-label">Choose the empty NRS template</strong>
+              <small>The original workbook structure will be preserved.</small>
+            </label>
+            <label class="upload-zone compact-upload-zone" for="audited-financial-statement">
+              <input id="audited-financial-statement" name="audited_financial_statement" type="file" accept="application/pdf,.pdf" required data-file-input data-file-label-target="cit-afs-label" />
+              <span class="upload-kicker">Audited financial statement</span>
+              <strong id="cit-afs-label">Choose audited accounts PDF</strong>
+              <small>Text-based PDFs give the strongest extraction.</small>
+            </label>
+            <button class="primary-btn" type="submit" id="cit-btn">Analyze CIT Inputs</button>
+            {% if error %}
+            <p class="error-line">{{ error }}</p>
+            {% endif %}
+          </form>
+        </div>
+      </section>
+
+      {% if analysis %}
+      <section class="results-section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">CIT Review</p>
+            <h2>Approve the proposed NRS mappings</h2>
+            <p class="subtle-line">
+              <span>{{ analysis.template_filename }}</span>
+              <span>{{ analysis.afs_filename }}</span>
+              <span>{{ analysis.sources|length }} extracted AFS amounts</span>
+              <span>{{ analysis.proposals|length }} proposed mappings</span>
+              <span>{{ analysis.unassigned_sources|length }} needs review</span>
+            </p>
+          </div>
+          {% if output_ready %}
+          <a class="secondary-btn" href="/download-cit-template/{{ session_token }}">Download Populated CIT Template</a>
+          {% endif %}
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card accent-parser">
+            <span>Editable Cells</span>
+            <strong>{{ analysis.targets|length }}</strong>
+            <small>Only unlocked NRS input cells are available for writing.</small>
+          </article>
+          <article class="stat-card accent-credit">
+            <span>Proposals</span>
+            <strong>{{ analysis.proposals|length }}</strong>
+            <small>Each proposal must be reviewed before export.</small>
+          </article>
+          <article class="stat-card accent-check">
+            <span>Needs Review</span>
+            <strong>{{ analysis.unassigned_sources|length }}</strong>
+            <small>Unclear lines can be assigned manually before export.</small>
+          </article>
+        </div>
+
+        <section class="panel-card recon-card">
+          <div class="panel-head">
+            <h3>Validation Checks</h3>
+            <p>Matched checks are within one naira. Review checks need human confirmation because the source or target may be judgement-based.</p>
+          </div>
+          <div class="coverage-list">
+            {% for check in analysis.checks %}
+            <article class="coverage-item">
+              <div class="coverage-top">
+                <strong>{{ check.label }}</strong>
+                <span class="status-pill {% if check.status == 'matched' %}status-live{% elif check.status == 'mismatch' %}status-error{% else %}status-queued{% endif %}">{{ check.status }}</span>
+              </div>
+              <p>
+                AFS: {{ "{:,.2f}".format(check.expected) if check.expected is not none else "-" }}
+                |
+                Proposed: {{ "{:,.2f}".format(check.actual) if check.actual is not none else "-" }}
+                {% if check.difference is not none %}
+                |
+                Difference: {{ "{:,.2f}".format(check.difference) }}
+                {% endif %}
+              </p>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel-card" id="cit-review">
+          <div class="panel-head">
+            <h3>Proposed Mappings</h3>
+            <p>Confirm the target row and amount for every proposed entry. Clear the target for anything you do not want written into the NRS workbook.</p>
+          </div>
+          <form action="/populate-cit-template/{{ session_token }}/complete" method="post" class="review-form cit-review-form">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>AFS Source</th>
+                    <th>Amount</th>
+                    <th>NRS Target</th>
+                    <th>Confidence</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for proposal in analysis.proposals %}
+                  <tr data-review-row data-description="{{ proposal.source.label|lower }}">
+                    <td>
+                      <strong>{{ proposal.source.label }}</strong>
+                      <p class="meta-line">Page {{ proposal.source.page }} · {{ proposal.source.section }}</p>
+                    </td>
+                    <td>
+                      <input class="table-input" name="mapping_amount_{{ loop.index0 }}" value="{{ proposal.source.amount }}" />
+                    </td>
+                    <td>
+                      <select class="category-select" name="mapping_target_{{ loop.index0 }}">
+                        <option value="">Do not populate</option>
+                        {% for target in analysis.targets %}
+                        <option value="{{ target.key }}" {% if target.key == proposal.target.key %}selected{% endif %}>
+                          {{ target.key }} - {{ target.label }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>{{ "{:.0%}".format(proposal.confidence) }}</td>
+                    <td>{{ proposal.reason }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            {% if analysis.unassigned_sources %}
+            <div class="panel-head review-subhead">
+              <h3>Needs Review</h3>
+              <p>These AFS lines were extracted but not confidently classified. Choose where any useful line should go in the NRS template, or leave it blank.</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Unclear AFS Line</th>
+                    <th>Amount</th>
+                    <th>Choose NRS Target</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for source in analysis.unassigned_sources %}
+                  {% set row_index = analysis.proposals|length + loop.index0 %}
+                  <tr data-review-row data-description="{{ source.label|lower }}">
+                    <td><strong>{{ source.label }}</strong></td>
+                    <td>
+                      <input class="table-input" name="mapping_amount_{{ row_index }}" value="{{ source.amount }}" />
+                    </td>
+                    <td>
+                      <select class="category-select" name="mapping_target_{{ row_index }}">
+                        <option value="">Leave unpopulated</option>
+                        {% for target in analysis.targets %}
+                        <option value="{{ target.key }}">{{ target.key }} - {{ target.label }}</option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>
+                      <p class="meta-line">Page {{ source.page }} · {{ source.section }}</p>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
+
+            <div class="consolidation-actions">
+              <button class="primary-btn" type="submit">Generate Reviewed CIT Workbook</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel-card">
+          <div class="panel-head">
+            <h3>Extracted AFS Amounts</h3>
+            <p>These are the source values detected from the audited accounts. Values not proposed above may still be useful during manual review.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Page</th>
+                  <th>Section</th>
+                  <th>Label</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for source in analysis.sources %}
+                <tr>
+                  <td>{{ source.page }}</td>
+                  <td>{{ source.section }}</td>
+                  <td>{{ source.label }}</td>
+                  <td>{{ "{:,.2f}".format(source.amount) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+      {% endif %}
+{% endblock %}

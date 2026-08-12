@@ -2113,8 +2113,20 @@ body {
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
+.table-input {
+  width: min(100%, 140px);
+  min-height: 42px;
+  padding: 0.68rem 0.72rem;
+  border: 1px solid rgba(203, 214, 223, 0.95);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font: inherit;
+}
+
 .review-search input:focus,
-.category-select:focus {
+.category-select:focus,
+.table-input:focus {
   outline: none;
   border-color: rgba(13, 111, 120, 0.64);
   box-shadow: 0 0 0 4px rgba(13, 111, 120, 0.1);

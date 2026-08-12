@@ -8,6 +8,8 @@ const consolidationInput = document.getElementById('consolidation-statements');
 const consolidationLabel = document.getElementById('consolidation-file-label');
 const consolidationForm = document.getElementById('consolidate-form');
 const consolidationButton = document.getElementById('consolidate-btn');
+const citForm = document.getElementById('cit-form');
+const citButton = document.getElementById('cit-btn');
 const reviewForm = document.querySelector('.review-form');
 const reviewButton = reviewForm ? reviewForm.querySelector('button[type="submit"]') : null;
 const adaptiveReviewForm = document.querySelector('.adaptive-review-form');
@@ -113,6 +115,13 @@ if (consolidationForm && consolidationButton) {
   consolidationForm.addEventListener('submit', () => {
     consolidationButton.textContent = 'Consolidating...';
     consolidationButton.disabled = true;
+  });
+}
+
+if (citForm && citButton) {
+  citForm.addEventListener('submit', () => {
+    citButton.textContent = 'Analyzing...';
+    citButton.disabled = true;
   });
 }
 
