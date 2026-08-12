@@ -8,6 +8,7 @@ import xlsxwriter
 from xlsxwriter.utility import xl_col_to_name
 
 from statement_analyzer.classifiers.rules import REVIEW_CONFIDENCE_THRESHOLD, inflow_categories, outflow_categories
+from statement_analyzer.consolidation import bank_name_from_parser
 from statement_analyzer.models import ClassifiedTransaction, StatementAnalysis, TransactionDirection
 
 
@@ -293,6 +294,9 @@ class ExcelExporter:
         row += 2
         sheet.write(row, 0, "Account Name", label_format)
         sheet.write(row, 1, metadata.account_name if metadata else "")
+        row += 1
+        sheet.write(row, 0, "Bank", label_format)
+        sheet.write(row, 1, bank_name_from_parser(analysis.parser_name) or analysis.parser_name or "")
         row += 1
         sheet.write(row, 0, "Account Number", label_format)
         sheet.write(row, 1, metadata.account_number if metadata else "")

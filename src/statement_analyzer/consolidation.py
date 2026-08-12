@@ -94,8 +94,10 @@ def inspect_analyzed_workbook(path: Path, filename: str | None = None) -> Workbo
     finally:
         workbook.close()
 
+    display_filename = filename or path.name
+    bank_name = bank_name or bank_name_from_filename(display_filename)
     return WorkbookPreview(
-        filename=filename or path.name,
+        filename=display_filename,
         path=path,
         bank_name=bank_name,
         account_number=account_number,
@@ -221,6 +223,8 @@ def extract_metadata(workbook) -> tuple[str | None, str | None, str | None]:
             elif label == "parser":
                 parser_name = value
 
+    if bank_name and bank_name.strip().lower().startswith("adaptive"):
+        bank_name = None
     if not bank_name:
         bank_name = bank_name_from_parser(parser_name)
 
@@ -336,10 +340,27 @@ def bank_name_from_parser(parser_name: str | None) -> str | None:
     if not parser_name:
         return None
     normalized_parser = parser_name.strip().lower()
+    if normalized_parser.startswith("adaptive"):
+        return None
     for marker, bank_name in PARSER_BANK_NAMES.items():
         if marker in normalized_parser:
             return bank_name
     return None
+
+
+def bank_name_from_filename(filename: str) -> str | None:
+    normalized = filename.upper()
+    hints = (
+        ("STANBIC", "Stanbic IBTC"),
+        ("KEYSTONE", "Keystone Bank"),
+        ("WISDOM KWATI", "Keystone Bank"),
+        ("ZENITH", "Zenith Bank"),
+        ("UBA", "UBA"),
+        ("WEMA", "Wema Bank"),
+        ("MONIEPOINT", "Moniepoint"),
+        ("OPAY", "OPay"),
+    )
+    return next((bank for marker, bank in hints if marker in normalized), None)
 
 
 def write_cell(sheet, row: int, column: int, value: Any, money_format, date_format) -> None:
