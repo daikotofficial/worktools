@@ -7,6 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from threading import RLock
+from contextvars import ContextVar
 
 import pdfplumber
 
@@ -18,8 +19,8 @@ from statement_analyzer.parsers.pdf_utils import find_regex_in_pages, open_pdf
 HEADER_TERMS: dict[str, tuple[str, ...]] = {
     "date": ("DATE", "TRANS", "TXN", "POST", "BOOK", "VALUE"),
     "description": ("DESCRIPTION", "NARRATION", "REMARKS", "DETAILS", "PARTICULARS", "MEMO"),
-    "debit": ("DEBIT", "DEBITS", "WITHDRAWAL", "WITHDRAWALS", "DR"),
-    "credit": ("CREDIT", "CREDITS", "DEPOSIT", "DEPOSITS", "LODGEMENT", "LODGEMENTS", "CR"),
+    "debit": ("DEBIT", "DEBITS", "WITHDRAWAL", "WITHDRAWALS", "WITHDRAW", "PAYOUT", "DR"),
+    "credit": ("CREDIT", "CREDITS", "DEPOSIT", "DEPOSITS", "LODGEMENT", "LODGEMENTS", "PAYIN", "CR"),
     "balance": ("BALANCE", "BAL"),
     "reference": ("REFERENCE", "REF", "REF.", "ID"),
 }
@@ -31,6 +32,10 @@ HEADER_PHRASES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("MONEY", "OUT"), "debit"),
     (("PAID", "IN"), "credit"),
     (("PAID", "OUT"), "debit"),
+    (("PAY", "IN"), "credit"),
+    (("PAY", "OUT"), "debit"),
+    (("PAY", "INFLOW"), "credit"),
+    (("PAY", "OUTFLOW"), "debit"),
 )
 ADAPTIVE_COLUMN_ROLES = ("date", "description", "debit", "credit", "amount", "balance", "reference", "ignore")
 
@@ -39,12 +44,15 @@ DATE_PATTERNS = (
     "%d-%b-%y",
     "%d/%m/%Y",
     "%d/%m/%y",
+    "%m/%d/%Y",
+    "%m/%d/%y",
     "%d-%m-%Y",
     "%d-%m-%y",
     "%d %b %Y",
     "%d %b %y",
     "%Y-%m-%d",
 )
+DATE_ORDER_HINT: ContextVar[str | None] = ContextVar("statement_date_order_hint", default=None)
 
 CONFIDENCE_THRESHOLD = 0.62
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -189,6 +197,8 @@ class GenericStatementParser(StatementParser):
         self.last_plan: HeaderPlan | None = None
         self.last_assessment: ParseAssessment | None = None
         self.last_matched_template: AdaptiveTemplate | None = None
+        self.last_expected_transaction_rows: int | None = None
+        self.last_balance_match_ratio: float = 0.0
 
     def can_parse(self, pdf_path: Path) -> bool:
         return pdf_path.suffix.lower() == ".pdf"
@@ -212,8 +222,13 @@ class GenericStatementParser(StatementParser):
         self.last_assessment = None
         self.last_matched_template = None
         self.last_template_key = None
+        self.last_expected_transaction_rows = None
+        self.last_balance_match_ratio = 0.0
 
         profile = detect_layout(pdf_path)
+        date_order_token = DATE_ORDER_HINT.set(
+            "mdy" if profile is not None and profile.key == "stanbic_ibtc_statement" else None
+        )
         with open_pdf(pdf_path) as pdf:
             sample_words = sum(len(page.extract_words(x_tolerance=2, y_tolerance=2, keep_blank_chars=False)) for page in pdf.pages[:2])
             sample_text_lines = extract_text_lines(pdf.pages[:2])
@@ -225,6 +240,8 @@ class GenericStatementParser(StatementParser):
             signature_text = extract_signature_text(pdf.pages)
             templates = load_adaptive_templates(self.templates_file)
             matched_template = match_adaptive_template(signature_text, templates)
+            if profile is not None:
+                self.bank_name = profile.bank_name
             self.last_signature_text = signature_text
             self.last_metadata = extract_generic_metadata(pdf.pages)
             plan = infer_header_plan(
@@ -292,8 +309,20 @@ class GenericStatementParser(StatementParser):
                 plan,
                 template=active_template,
             )
+            expected_rows = count_dated_statement_rows(pdf.pages)
+            self.last_expected_transaction_rows = expected_rows or None
+            if expected_rows and expected_rows != len([tx for tx in transactions if tx.transaction_date is not None]):
+                assessment = ParseAssessment(
+                    score=0.2,
+                    reasons=[
+                        *assessment.reasons,
+                        f"row coverage failed: expected {expected_rows} dated rows but extracted "
+                        f"{len([tx for tx in transactions if tx.transaction_date is not None])}",
+                    ],
+                )
             self.last_plan = plan
             self.last_assessment = assessment
+            self.last_balance_match_ratio = compute_balance_match_ratio(transactions)
             if assessment.score < CONFIDENCE_THRESHOLD and not allow_low_confidence:
                 raise AdaptiveReviewRequired(
                     confidence=assessment.score,
@@ -316,6 +345,7 @@ class GenericStatementParser(StatementParser):
                     self.bank_name = learned_template.name
                     self.last_template_key = learned_template.key
 
+        DATE_ORDER_HINT.reset(date_order_token)
         return transactions
 
     def save_last_template(
@@ -811,7 +841,52 @@ def extract_transactions_from_pages(
             )
             previous_balance = balance if balance is not None else previous_balance
 
+    normalize_directions_from_running_balance(transactions, initial_balance=initial_balance)
     return transactions
+
+
+def normalize_directions_from_running_balance(
+    transactions: list[Transaction],
+    *,
+    initial_balance: Decimal | None = None,
+) -> None:
+    """Correct a globally reversed debit/credit mapping only when balances prove it.
+
+    Some exports call the two money columns Deposit/Withdrawal, Pay In/Pay Out,
+    or present them in an unexpected order.  A label alone is not enough to
+    trust the mapping, while the running balance provides an independent check.
+    This deliberately requires a clear majority before changing anything.
+    """
+    evidence: list[tuple[Transaction, bool]] = []
+    previous = initial_balance
+    for transaction in transactions:
+        if transaction.transaction_date is None:
+            if transaction.balance is not None:
+                previous = transaction.balance
+            continue
+        if previous is None or transaction.balance is None:
+            previous = transaction.balance if transaction.balance is not None else previous
+            continue
+        if not ((transaction.debit > 0) ^ (transaction.credit > 0)):
+            previous = transaction.balance
+            continue
+
+        delta = transaction.balance - previous
+        current_matches = abs(delta - (transaction.credit - transaction.debit)) <= Decimal("1.00")
+        swapped_matches = abs(delta - (transaction.debit - transaction.credit)) <= Decimal("1.00")
+        if current_matches or swapped_matches:
+            evidence.append((transaction, swapped_matches and not current_matches))
+        previous = transaction.balance
+
+    if len(evidence) < 3:
+        return
+    swapped = sum(1 for _, is_swapped in evidence if is_swapped)
+    current = len(evidence) - swapped
+    if swapped <= current or swapped / len(evidence) < 0.8:
+        return
+    for transaction, is_swapped in evidence:
+        if is_swapped:
+            transaction.debit, transaction.credit = transaction.credit, transaction.debit
 
 
 def capture_detached_amount(
@@ -939,6 +1014,18 @@ def extract_text_lines(pages: list[pdfplumber.page.Page]) -> list[str]:
         text = page.extract_text() or ""
         lines.extend(line for line in text.splitlines() if clean_text(line))
     return lines
+
+
+def count_dated_statement_rows(pages: list[pdfplumber.page.Page]) -> int:
+    """Count physical transaction starts when dates and amounts share a line."""
+    date_token = r"(?:\d{1,4}[/-][A-Za-z0-9]{1,3}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4})"
+    dated_row = re.compile(rf"^\s*{date_token}\s+{date_token}\s+.*-?[0-9,]+\.\d{{1,2}}")
+    return sum(
+        1
+        for page in pages
+        for line in (page.extract_text() or "").splitlines()
+        if dated_row.match(clean_text(line))
+    )
 
 
 def looks_like_transaction_start(line: str) -> bool:
@@ -1112,9 +1199,26 @@ def first_parseable_date(cells: list[str], columns: list[HeaderColumn]):
 def extract_description(cells: list[str], columns: list[HeaderColumn]) -> str:
     parts: list[str] = []
     for cell, column in zip(cells, columns):
-        if column.semantic in {"description", "reference"} and cell:
+        if not cell:
+            continue
+        if column.semantic in {"description", "reference"}:
             parts.append(cell)
-    return strip_leading_dates(clean_text(" ".join(parts)))
+        elif column.semantic == "date" and parse_date(cell):
+            # Some statements place two date columns in one inferred date
+            # region. Preserve narration that begins before the first amount.
+            residual = re.sub(
+                r"\b(?:\d{1,2}[/-][A-Za-z0-9]{1,3}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})\b",
+                " ",
+                cell,
+            )
+            if residual.strip():
+                parts.append(residual)
+    return clean_statement_description(strip_leading_dates(clean_text(" ".join(parts))))
+
+
+def clean_statement_description(value: str) -> str:
+    cleaned = clean_text(value)
+    return re.sub(r"\s*\bPage\s+\d+\s+of\s+\d+\b\s*$", "", cleaned, flags=re.IGNORECASE).strip()
 
 
 def first_decimal(cells: list[str], columns: list[HeaderColumn], semantic: str) -> Decimal | None:
@@ -1603,7 +1707,12 @@ def parse_date(value: str):
     match = re.search(r"\b\d{1,2}[/-][A-Za-z0-9]{1,3}[/-]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4}\b", cleaned)
     if match:
         cleaned = match.group(0)
-    for pattern in DATE_PATTERNS:
+    patterns = DATE_PATTERNS
+    if DATE_ORDER_HINT.get() == "mdy" and "/" in cleaned:
+        patterns = tuple(pattern for pattern in DATE_PATTERNS if pattern.startswith("%m/") or not pattern.startswith("%d/")) + tuple(
+            pattern for pattern in DATE_PATTERNS if pattern.startswith("%d/")
+        )
+    for pattern in patterns:
         try:
             return datetime.strptime(cleaned, pattern).date()
         except ValueError:

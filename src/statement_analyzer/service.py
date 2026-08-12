@@ -461,6 +461,9 @@ class StatementAnalysisService:
         try:
             guard_against_silent_zero_totals(analysis)
             guard_against_total_mismatch(analysis)
+            parser = self.pipeline.last_parser
+            if isinstance(parser, GenericStatementParser):
+                validate_adaptive_structure(parser, analysis)
         except ValueError as exc:
             adaptive_review = self._adaptive_review_from_validation_failure(analysis, str(exc))
             if adaptive_review is not None:
@@ -657,6 +660,28 @@ def guard_against_total_mismatch(analysis: StatementAnalysis, *, tolerance: Deci
             + "; ".join(failed_totals)
             + ". No workbook was generated because that would produce misleading totals."
         )
+
+
+def validate_adaptive_structure(parser: GenericStatementParser, analysis: StatementAnalysis) -> None:
+    """Reject adaptive parses that are structurally incomplete or unstable."""
+    dated_transactions = [tx for tx in analysis.all_transactions if tx.transaction_date is not None]
+    if parser.last_expected_transaction_rows is not None and len(dated_transactions) != parser.last_expected_transaction_rows:
+        raise ValueError(
+            "The adaptive parser did not capture every dated transaction row: "
+            f"expected {parser.last_expected_transaction_rows}, extracted {len(dated_transactions)}."
+        )
+
+    ambiguous = [tx for tx in dated_transactions if tx.debit > 0 and tx.credit > 0]
+    if ambiguous:
+        raise ValueError(f"The adaptive parser produced {len(ambiguous)} rows with both debit and credit values.")
+
+    if len(dated_transactions) >= 3:
+        ratio = parser.last_balance_match_ratio
+        if ratio < 0.995:
+            raise ValueError(
+                "The adaptive parser failed running-balance validation: "
+                f"only {ratio:.1%} of balance transitions matched."
+            )
 
 
 def category_options_for(direction: TransactionDirection) -> list[str]:

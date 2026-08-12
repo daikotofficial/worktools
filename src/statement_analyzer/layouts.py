@@ -36,6 +36,15 @@ LAYOUT_PROFILES: tuple[LayoutProfile, ...] = (
         notes='Already supported by the first working parser.',
     ),
     LayoutProfile(
+        key='stanbic_ibtc_statement',
+        label='Stanbic IBTC account statement layout',
+        bank_name='Stanbic IBTC',
+        sample_files=('STANBIC IBTC Account Statement (2).pdf',),
+        required_terms=('POSTED', 'CREATE', 'NARRATION', 'DEBIT', 'CREDIT', 'BALANCE'),
+        optional_terms=('INFLOW VS OUTFLOW', 'CURRENT BALANCE', 'ACCOUNT NUMBER:', 'DATE GENERATED:'),
+        notes='Stanbic IBTC export with Posted Date / Create Date / Narration / Debit / Credit / Balance columns.',
+    ),
+    LayoutProfile(
         key='uba_statement',
         label='UBA statement layout',
         bank_name='UBA',

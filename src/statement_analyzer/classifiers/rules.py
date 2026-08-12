@@ -83,6 +83,7 @@ TRANSFER_MARKERS = (
     " TRANSFER ",
     " MBANKING TRF ",
     " MOBILE TRF ",
+    " APP TO ",
     " OUTWARD TRANSFER ",
     " INWARD TRANSFER ",
     " TNF-",
@@ -649,6 +650,12 @@ def qualifies_sales_inflow(
     owner_name: str | None,
 ) -> bool:
     business_owner = bool(owner_name and looks_like_business_entity(owner_name))
+    # A transfer marker and a product word can coexist (for example, a
+    # transfer for packs of water). Direction is already settled from the
+    # bank columns; do not turn such transfers into Sales merely because the
+    # narration contains a product description.
+    if looks_like_transfer(description):
+        return False
     if contains_any(description, (" CASH DEP ", " CASH DEPOSIT ", " LODGEMENT ", " TELLER ")):
         return False
     if contains_any(description, SALE_MARKERS) or contains_any(purpose, SALE_MARKERS):

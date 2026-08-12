@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
@@ -22,7 +23,10 @@ from statement_analyzer.parsers.generic import (
     match_adaptive_template,
     parse_decimal_from_cell,
     save_adaptive_template,
+    normalize_directions_from_running_balance,
+    count_dated_statement_rows,
 )
+from statement_analyzer.models import Transaction
 
 
 class FakePage:
@@ -59,6 +63,25 @@ def make_word(text: str, x0: float, top: float) -> dict:
 
 
 class AdaptiveParserTests(unittest.TestCase):
+    def test_running_balance_corrects_reversed_debit_credit_columns(self) -> None:
+        transactions = [
+            Transaction(date(2026, 1, 1), "Pay in", debit=Decimal("500"), balance=Decimal("1500")),
+            Transaction(date(2026, 1, 2), "Pay out", credit=Decimal("200"), balance=Decimal("1300")),
+            Transaction(date(2026, 1, 3), "Pay in", debit=Decimal("100"), balance=Decimal("1400")),
+        ]
+
+        normalize_directions_from_running_balance(transactions, initial_balance=Decimal("1000"))
+
+        self.assertEqual([(item.debit, item.credit) for item in transactions], [
+            (Decimal("0"), Decimal("500")),
+            (Decimal("200"), Decimal("0")),
+            (Decimal("0"), Decimal("100")),
+        ])
+
+    def test_count_dated_statement_rows_counts_physical_transaction_starts(self) -> None:
+        page = FakePage([], text="07/01/2026 07/01/2026 Deposit - 10.00 110.00\nContinuation\n07/02/2026 07/02/2026 Fee 1.00 - 109.00")
+        self.assertEqual(count_dated_statement_rows([page]), 2)
+
     def test_infers_unknown_layout_and_extracts_transactions(self) -> None:
         words = [
             make_word("Date", 20, 10),
