@@ -82,12 +82,17 @@ class ConsolidationResult:
 
 
 def inspect_analyzed_workbook(path: Path, filename: str | None = None) -> WorkbookPreview:
-    workbook = load_workbook(path, data_only=True, read_only=True)
+    try:
+        workbook = load_workbook(path, data_only=True, read_only=True)
+    except Exception as exc:
+        raise ValueError("The uploaded file is not a readable Excel workbook.") from exc
     try:
         bank_name, account_number, parser_name = extract_metadata(workbook)
-        inflows = read_transaction_sheet(workbook, "Inflows")
-        outflows = read_transaction_sheet(workbook, "Outflows")
+        inflows = read_transaction_sheet(workbook, find_sheet(workbook, ("Inflows", "Inflow", "Credits")))
+        outflows = read_transaction_sheet(workbook, find_sheet(workbook, ("Outflows", "Outflow", "Debits")))
         if not inflows.headers and not outflows.headers:
+            if find_sheet(workbook, ("Consolidated Inflows", "Consolidated Outflows")):
+                raise ValueError("This is already a consolidated workbook. Upload the original analyzed workbooks instead.")
             raise ValueError("Workbook is missing the Inflows and Outflows sheets.")
         inflow_count = len(inflows.rows)
         outflow_count = len(outflows.rows)
@@ -185,8 +190,8 @@ def load_analyzed_workbook(
     workbook = load_workbook(path, data_only=True, read_only=True)
     try:
         _, _, parser_name = extract_metadata(workbook)
-        inflows = read_transaction_sheet(workbook, "Inflows")
-        outflows = read_transaction_sheet(workbook, "Outflows")
+        inflows = read_transaction_sheet(workbook, find_sheet(workbook, ("Inflows", "Inflow", "Credits")))
+        outflows = read_transaction_sheet(workbook, find_sheet(workbook, ("Outflows", "Outflow", "Debits")))
         preview = WorkbookPreview(
             filename=filename,
             path=path,
@@ -232,7 +237,7 @@ def extract_metadata(workbook) -> tuple[str | None, str | None, str | None]:
 
 
 def read_transaction_sheet(workbook, sheet_name: str) -> SheetData:
-    if sheet_name not in workbook.sheetnames:
+    if not sheet_name or sheet_name not in workbook.sheetnames:
         return SheetData(headers=[], rows=[])
 
     sheet = workbook[sheet_name]
@@ -258,6 +263,14 @@ def read_transaction_sheet(workbook, sheet_name: str) -> SheetData:
             rows.append(row_values)
 
     return SheetData(headers=[header for header in headers if header], rows=rows)
+
+
+def find_sheet(workbook, candidates: tuple[str, ...]) -> str | None:
+    normalized = {str(name).strip().upper(): name for name in workbook.sheetnames}
+    for candidate in candidates:
+        if candidate.upper() in normalized:
+            return normalized[candidate.upper()]
+    return None
 
 
 def write_consolidated_sheet(

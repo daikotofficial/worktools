@@ -642,7 +642,7 @@ async def prepare_consolidation(
 
         try:
             previews.append(inspect_analyzed_workbook(workbook_path, filename=filename))
-        except Exception:
+        except Exception as exc:
             logger.exception("Failed to inspect workbook %s", filename)
             return templates.TemplateResponse(
                 request=request,
@@ -650,7 +650,7 @@ async def prepare_consolidation(
                 context=consolidation_page_context(
                     request,
                     files=previews,
-                    error=f'{filename} could not be read as an analyzed workbook. Please upload the Excel files downloaded from this app.',
+                    error=f'{filename} could not be used: {exc}',
                 ),
                 status_code=400,
             )
