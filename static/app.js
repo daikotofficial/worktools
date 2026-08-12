@@ -170,18 +170,58 @@ if (adaptiveReviewForm && adaptiveReviewButton) {
 }
 
 if (uploadZones.length) {
+  const assignDroppedFiles = (fileInput, files) => {
+    if (!fileInput || !files || !files.length) {
+      return;
+    }
+
+    // Assigning the files is what makes a drop behave like a picker selection.
+    // DataTransfer is supported by current browsers and preserves multi-file
+    // uploads such as consolidation workbooks.
+    try {
+      const transfer = new DataTransfer();
+      Array.from(files).forEach((file) => transfer.items.add(file));
+      fileInput.files = transfer.files;
+    } catch (error) {
+      // Some older browsers do not allow constructing DataTransfer. Direct
+      // assignment still works for the native FileList in those browsers.
+      try {
+        fileInput.files = files;
+      } catch (assignmentError) {
+        return;
+      }
+    }
+
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
   uploadZones.forEach((uploadZone) => {
+    const fileInput = uploadZone.querySelector('input[type="file"]');
+
     ['dragenter', 'dragover'].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
         event.preventDefault();
+        event.stopPropagation();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'copy';
+        }
         uploadZone.classList.add('is-dragging');
       });
     });
 
-    ['dragleave', 'drop'].forEach((eventName) => {
-      uploadZone.addEventListener(eventName, () => {
+    uploadZone.addEventListener('dragleave', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!uploadZone.contains(event.relatedTarget)) {
         uploadZone.classList.remove('is-dragging');
-      });
+      }
+    });
+
+    uploadZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      uploadZone.classList.remove('is-dragging');
+      assignDroppedFiles(fileInput, event.dataTransfer && event.dataTransfer.files);
     });
   });
 }

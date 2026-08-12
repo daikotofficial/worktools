@@ -176,6 +176,23 @@ LAYOUT_PROFILES: tuple[LayoutProfile, ...] = (
         notes='Corporate Wema statement with Value Date / Transaction Date / Reference / Details / Credit / Debit / Balance columns.',
     ),
     LayoutProfile(
+        key='wema_account_statement_variant',
+        label='Wema account statement credit/debit layout',
+        bank_name='Wema Bank',
+        sample_files=('04032026030223_Statement_For_SOL-TAYLOR INVESTMENTS LTD.pdf',),
+        required_terms=(
+            'ACCOUNT STATEMENT',
+            'CURRENT BALANCE EFFECTIVE AVAILABLE BALANCE',
+            'CREDIT COUNT DEBIT COUNT',
+            'TRANSACTION DETAILS',
+            'CREDIT(₦)',
+            'DEBIT(₦)',
+            'BALANCE(₦)',
+        ),
+        optional_terms=('ACCOUNT TYPE', 'DATE PRINTED', 'START DATE', 'END DATE'),
+        notes='Wema corporate export with a split Date / Reference / Transaction Details table and explicitly labeled Credit/Debit amount columns.',
+    ),
+    LayoutProfile(
         key='wema_treasure_statement',
         label='Wema Treasure individual statement layout',
         bank_name='Wema Bank',

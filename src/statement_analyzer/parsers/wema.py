@@ -68,10 +68,17 @@ class WemaStatementParser(StatementParser):
 
     def can_parse(self, pdf_path: Path) -> bool:
         profile = detect_layout(pdf_path)
-        return profile is not None and profile.key == "wema_statement"
+        return profile is not None and profile.key in {
+            "wema_statement",
+            "wema_account_statement_variant",
+        }
 
     def parse(self, pdf_path: Path) -> list[Transaction]:
         self.last_metadata = self._extract_metadata(pdf_path)
+        profile = detect_layout(pdf_path)
+        if profile is not None and profile.key == "wema_account_statement_variant":
+            return self._parse_account_statement_variant(pdf_path)
+
         rows = self._extract_rows(pdf_path)
         attachments = self._build_attachments(rows)
         transactions: list[Transaction] = []
@@ -131,6 +138,117 @@ class WemaStatementParser(StatementParser):
             )
 
         return transactions
+
+    def _parse_account_statement_variant(self, pdf_path: Path) -> list[Transaction]:
+        """Parse Wema's export where the date cell wraps over separate lines.
+
+        The amount columns are deliberately assigned from their printed x
+        ranges: the left amount column is Credit and the right amount column is
+        Debit. This prevents a description or balance-based guess from ever
+        swapping inflows and outflows.
+        """
+        transactions: list[Transaction] = []
+        with open_pdf(pdf_path) as pdf:
+            for page_number, page in enumerate(pdf.pages, start=1):
+                rows = self._group_words(page.extract_words(x_tolerance=2, y_tolerance=2, keep_blank_chars=False))
+                table_started = False
+                pending: dict[str, list[str]] | None = None
+
+                def finish_pending() -> None:
+                    if pending is None:
+                        return
+                    date_value = re.sub(r"-\s+", "-", clean_ocr_text(" ".join(pending["date"])))
+                    try:
+                        date = datetime.strptime(date_value, "%d-%b-%Y").date()
+                    except ValueError:
+                        return
+                    credit = parse_decimal(" ".join(pending["credit"])) or Decimal("0")
+                    debit = parse_decimal(" ".join(pending["debit"])) or Decimal("0")
+                    balance = parse_decimal(" ".join(pending["balance"]))
+                    if balance is None or (credit == 0 and debit == 0):
+                        return
+                    description = clean_text(" ".join(pending["description"]))
+                    reference = clean_text(" ".join(pending["reference"])) or None
+                    transactions.append(
+                        Transaction(
+                            transaction_date=date,
+                            description=description or "Unlabeled Transaction",
+                            debit=debit,
+                            credit=credit,
+                            balance=balance,
+                            reference=reference,
+                            currency=self.last_metadata.currency if self.last_metadata else "NGN",
+                            raw_text=clean_text(
+                                " ".join(
+                                    (date_value, reference or "", description, *pending["credit"], *pending["debit"], *pending["balance"])
+                                )
+                            ),
+                            source_page=page_number,
+                            parser_name=self.bank_name,
+                        )
+                    )
+
+                for row in rows:
+                    row_text = clean_ocr_text(" ".join(word["text"] for word in row))
+                    if row_text.upper().startswith(("NEED HELP", "ALAT.NG")):
+                        finish_pending()
+                        pending = None
+                        break
+                    if not table_started:
+                        if "CREDIT(₦)" in row_text.upper() and "DEBIT(₦)" in row_text.upper():
+                            table_started = True
+                        continue
+                    if "CREDIT(₦)" in row_text.upper() or "BALANCE(₦)" in row_text.upper():
+                        continue
+
+                    columns = {"date": [], "reference": [], "description": [], "credit": [], "debit": [], "balance": []}
+                    for word in row:
+                        x0 = float(word["x0"])
+                        text = word["text"]
+                        if x0 < 55:
+                            columns["date"].append(text)
+                        elif x0 < 115:
+                            columns["reference"].append(text)
+                        elif x0 < 400:
+                            columns["description"].append(text)
+                        elif x0 < 455:
+                            columns["credit"].append(text)
+                        elif x0 < 515:
+                            columns["debit"].append(text)
+                        else:
+                            columns["balance"].append(text)
+
+                    date_fragment = clean_ocr_text(" ".join(columns["date"]))
+                    starts_transaction = bool(re.fullmatch(r"\d{1,2}-[A-Za-z]{3}-(?:\d{4})?", date_fragment))
+                    if starts_transaction:
+                        finish_pending()
+                        pending = {key: [] for key in columns}
+                    if pending is None:
+                        continue
+                    for key, values in columns.items():
+                        pending[key].extend(values)
+
+                finish_pending()
+
+        return transactions
+
+    @staticmethod
+    def _group_words(words: list[dict]) -> list[list[dict]]:
+        grouped: list[list[dict]] = []
+        current: list[dict] = []
+        current_top: float | None = None
+        for word in sorted(words or [], key=lambda item: (item["top"], item["x0"])):
+            top = float(word["top"])
+            if current_top is None or abs(top - current_top) <= 2.6:
+                current.append(word)
+                current_top = top if current_top is None else (current_top + top) / 2
+            else:
+                grouped.append(sorted(current, key=lambda item: item["x0"]))
+                current = [word]
+                current_top = top
+        if current:
+            grouped.append(sorted(current, key=lambda item: item["x0"]))
+        return grouped
 
     def _extract_metadata(self, pdf_path: Path) -> StatementMetadata:
         with open_pdf(pdf_path) as pdf:
