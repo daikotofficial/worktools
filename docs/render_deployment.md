@@ -43,7 +43,7 @@ Required:
 STATEMENT_ANALYZER_RUNTIME_DIR=/tmp/daikot-worktools
 PYTHON_VERSION=3.11.9
 STATEMENT_ANALYZER_MAX_UPLOAD_MB=50
-STATEMENT_ANALYZER_MAX_PAGES=250
+STATEMENT_ANALYZER_MAX_PAGES=1200
 ```
 
 Optional for AdSense:
@@ -68,6 +68,6 @@ If social URLs are not set, Daikot defaults are used for the public footer.
 
 The free plan is good for testing and a first public preview, but it has a 512 MB memory ceiling. That is too tight for larger PDF bank statements because text extraction can temporarily use much more memory than the PDF file size suggests.
 
-The included Render config uses the Standard instance and limits statement analysis to 50 MB PDFs and 250 pages by default. These values can be raised later with `STATEMENT_ANALYZER_MAX_UPLOAD_MB` and `STATEMENT_ANALYZER_MAX_PAGES`, but keeping a ceiling protects the app from malformed, scanned, or unusually memory-heavy PDFs.
+The included Render config uses the Standard instance and limits statement analysis to 50 MB PDFs and 1,200 pages by default. These values can be raised later with `STATEMENT_ANALYZER_MAX_UPLOAD_MB` and `STATEMENT_ANALYZER_MAX_PAGES`, but keeping a ceiling protects the app from malformed, scanned, or unusually memory-heavy PDFs.
 
 If the service was created manually in the Render dashboard, confirm the instance type there is also set to Standard. The `render.yaml` value applies cleanly when Render is managing the service from the blueprint.

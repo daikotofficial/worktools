@@ -15,7 +15,7 @@ services:
       - key: STATEMENT_ANALYZER_MAX_UPLOAD_MB
         value: 50
       - key: STATEMENT_ANALYZER_MAX_PAGES
-        value: 250
+        value: 1200
       - key: ADSENSE_CLIENT_ID
         sync: false
       - key: ADSENSE_PUBLISHER_ID

@@ -5,11 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from typing import Iterator
 
 from statement_analyzer.layouts import detect_layout
 from statement_analyzer.models import StatementMetadata, Transaction
 from statement_analyzer.parsers.base import StatementParser
-from statement_analyzer.parsers.pdf_utils import find_regex_in_pages, open_pdf
+from statement_analyzer.parsers.pdf_utils import open_pdf
 
 
 @dataclass(slots=True)
@@ -38,11 +39,12 @@ class KeystoneStatementParser(StatementParser):
 
     def parse(self, pdf_path: Path) -> list[Transaction]:
         self.last_metadata = self._extract_metadata(pdf_path)
-        rows = self._extract_rows(pdf_path)
         transactions: list[Transaction] = []
         current: Transaction | None = None
 
-        for row in rows:
+        # Consume rows as they are extracted so long statements do not keep a
+        # second full in-memory representation of the document.
+        for row in self._extract_rows(pdf_path):
             if row.has_date:
                 if current is not None:
                     transactions.append(current)
@@ -76,7 +78,10 @@ class KeystoneStatementParser(StatementParser):
     def _extract_metadata(self, pdf_path: Path) -> StatementMetadata:
         with open_pdf(pdf_path) as pdf:
             first = pdf.pages[0].extract_text() or ""
-            closing = parse_decimal(find_regex_in_pages(pdf.pages, r"Closing Balance\s*-?\s*([0-9,]+\.\d{2})", reverse=True))
+            # The closing balance is on the final summary page. Avoid scanning
+            # every page twice on long multi-year statements.
+            last = pdf.pages[-1].extract_text() or ""
+            closing = parse_decimal(extract(last, r"Closing Balance\s*-?\s*([0-9,]+\.\d{2})"))
         account_name = extract(first, r"\n([A-Z][A-Z0-9 .&'/-]+LIMITED)\s*\nNO10\s+DUTSE")
         return StatementMetadata(
             account_name=account_name,
@@ -88,8 +93,7 @@ class KeystoneStatementParser(StatementParser):
             closing_balance=closing,
         )
 
-    def _extract_rows(self, pdf_path: Path) -> list[KeystoneRow]:
-        rows: list[KeystoneRow] = []
+    def _extract_rows(self, pdf_path: Path) -> Iterator[KeystoneRow]:
         with open_pdf(pdf_path) as pdf:
             for page_number, page in enumerate(pdf.pages, start=1):
                 words = page.extract_words(x_tolerance=2, y_tolerance=2, keep_blank_chars=False)
@@ -108,6 +112,7 @@ class KeystoneStatementParser(StatementParser):
                 if current:
                     grouped.append(current)
 
+                page_rows: list[KeystoneRow] = []
                 for group in grouped:
                     columns = {key: [] for key in ("date", "value_date", "narration", "reference", "debit", "credit", "balance")}
                     for word in sorted(group, key=lambda item: item["x0"]):
@@ -116,8 +121,12 @@ class KeystoneStatementParser(StatementParser):
                         columns[key].append(word["text"])
                     row = KeystoneRow(page_number, min(float(word["top"]) for word in group), **{key: " ".join(value).strip() for key, value in columns.items()})
                     if any(value for value in columns.values()) and not is_header_row(row):
-                        rows.append(row)
-        return rows
+                        page_rows.append(row)
+                # pdfplumber caches layout objects on each page. Release them
+                # before moving to the next page in very long statements.
+                page.close()
+                pdf.flush_cache()
+                yield from page_rows
 
 
 def is_header_row(row: KeystoneRow) -> bool:

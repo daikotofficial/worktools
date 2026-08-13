@@ -82,10 +82,10 @@ The Render config uses the Standard instance and sets conservative processing li
 
 ```bash
 STATEMENT_ANALYZER_MAX_UPLOAD_MB=50
-STATEMENT_ANALYZER_MAX_PAGES=250
+STATEMENT_ANALYZER_MAX_PAGES=1200
 ```
 
-These limits prevent very large statements from exhausting the app instance. Set either value to `0` or `unlimited` only on a server with enough memory.
+These limits allow long multi-year statements while still protecting the app instance from unusually large or malformed PDFs. Set either value to `0` or `unlimited` only on a server with enough memory.
 
 Detailed guide:
 

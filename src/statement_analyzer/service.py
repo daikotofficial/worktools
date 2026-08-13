@@ -745,7 +745,9 @@ def max_upload_size_bytes() -> int | None:
 
 
 def max_page_count() -> int | None:
-    return parse_positive_int_env("STATEMENT_ANALYZER_MAX_PAGES", default=120)
+    # Long bank exports are common, but retain a protective ceiling for
+    # malformed or unusually memory-heavy PDFs.
+    return parse_positive_int_env("STATEMENT_ANALYZER_MAX_PAGES", default=1200)
 
 
 def parse_positive_int_env(name: str, *, default: int) -> int | None:
