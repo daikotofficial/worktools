@@ -36,6 +36,7 @@ from statement_analyzer.parsers.lotus import LotusStatementParser
 from statement_analyzer.parsers.moniepoint import MoniepointStatementParser
 from statement_analyzer.parsers.opay import OPayStatementParser
 from statement_analyzer.parsers.op_transaction_history import OPTransactionHistoryParser
+from statement_analyzer.parsers.okaba import OkabaStatementParser
 from statement_analyzer.parsers.posting_value_ledger import PostingValueLedgerStatementParser
 from statement_analyzer.parsers.providus import ProvidusStatementParser
 from statement_analyzer.parsers.registry import ParserRegistry
@@ -168,6 +169,7 @@ class StatementAnalysisService:
             ClearJunctionStatementParser(),
             WemaTreasureStatementParser(),
             MoniepointStatementParser(),
+            OkabaStatementParser(),
         ]
         self.generic_parser = GenericStatementParser()
         self.registry = ParserRegistry([*self.dedicated_parsers, self.generic_parser])
