@@ -102,6 +102,7 @@ class OkabaStatementParser(StatementParser):
                 for word in line
                 if abs(float(word["top"]) - top) <= 28
                 and min(range(len(date_tops)), key=lambda index: abs(date_tops[index] - float(word["top"]))) == row_position
+                and float(word["top"]) < float(page.height) - 30
                 and not self._is_footer_word(word["text"])
             ]
 
@@ -144,6 +145,8 @@ class OkabaStatementParser(StatementParser):
         values: dict[str, list[str]] = {"debit": [], "credit": [], "balance": []}
         for word in words:
             x0 = float(word["x0"])
+            if not re.fullmatch(r"-?[\d,]+(?:\.\d+)?", word["text"]):
+                continue
             if debit_start <= x0 < credit_start:
                 values["debit"].append(word["text"])
             elif credit_start <= x0 < balance_start:

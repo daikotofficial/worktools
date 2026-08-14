@@ -23,8 +23,8 @@ class OkabaParserTests(unittest.TestCase):
                 self.assertTrue(parser.can_parse(ROOT / filename))
                 self.assertGreater(len(transactions), 50)
                 self.assertEqual(parser.last_metadata.period_start.year, int(year))
-                self.assertIsNotNone(parser.last_metadata.total_debit)
-                self.assertIsNotNone(parser.last_metadata.total_credit)
+                self.assertAlmostEqual(float(sum(item.debit for item in transactions)), debit_total, places=2)
+                self.assertAlmostEqual(float(sum(item.credit for item in transactions)), credit_total, places=2)
                 self.assertTrue(all(item.balance is not None for item in transactions))
 
     def test_2024_service_accepts_signed_reversals(self) -> None:
