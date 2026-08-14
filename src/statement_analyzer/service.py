@@ -267,8 +267,11 @@ class StatementAnalysisService:
             if item.transaction.direction == TransactionDirection.OUTFLOW
         ]
 
-        total_credit = sum(item.transaction.credit for _, item in inflow_items)
-        total_debit = sum(item.transaction.debit for _, item in outflow_items)
+        # Statement totals are net ledger movements.  Reversal rows can carry
+        # a negative debit (or credit), so summing only direction-classified
+        # rows would turn a net debit total into a gross positive total.
+        total_credit = sum(transaction.credit for transaction in analysis.all_transactions)
+        total_debit = sum(transaction.debit for transaction in analysis.all_transactions)
         classified_inflow_total = sum(
             item.transaction.credit
             for index, item in inflow_items
@@ -329,6 +332,14 @@ class StatementAnalysisService:
             (transaction.balance for transaction in reversed(analysis.all_transactions) if transaction.balance is not None),
             None,
         )
+        if (
+            parsed_closing_balance is not None
+            and metadata is not None
+            and metadata.blocked_amount is not None
+        ):
+            # Some bank exports show the running balance before blocked funds,
+            # while the summary's closing balance is net of the blocked amount.
+            parsed_closing_balance -= metadata.blocked_amount
         reconciliation_checks = [
             self._build_check("Inflows Total", metadata.total_credit if metadata else None, total_credit),
             self._build_check("Outflows Total", metadata.total_debit if metadata else None, total_debit),
@@ -600,16 +611,11 @@ def guard_against_silent_zero_totals(analysis: StatementAnalysis) -> None:
     if metadata is None:
         return
 
-    actual_credit = sum(
-        item.credit
-        for item in analysis.all_transactions
-        if item.direction == TransactionDirection.INFLOW
-    )
-    actual_debit = sum(
-        item.debit
-        for item in analysis.all_transactions
-        if item.direction == TransactionDirection.OUTFLOW
-    )
+    # Include signed reversal entries.  Filtering by direction excludes a
+    # negative debit reversal and incorrectly compares gross debits with the
+    # statement's net withdrawal total.
+    actual_credit = sum(item.credit for item in analysis.all_transactions)
+    actual_debit = sum(item.debit for item in analysis.all_transactions)
 
     failed_totals: list[str] = []
     if metadata.total_credit is not None and metadata.total_credit > Decimal("0") and actual_credit == Decimal("0"):
@@ -631,16 +637,11 @@ def guard_against_total_mismatch(analysis: StatementAnalysis, *, tolerance: Deci
     if metadata is None:
         return
 
-    actual_credit = sum(
-        item.credit
-        for item in analysis.all_transactions
-        if item.direction == TransactionDirection.INFLOW
-    )
-    actual_debit = sum(
-        item.debit
-        for item in analysis.all_transactions
-        if item.direction == TransactionDirection.OUTFLOW
-    )
+    # Statement totals are net ledger movements. Reversal rows may contain a
+    # negative debit or credit, so direction filtering would compare gross
+    # positive movements against the statement's net totals.
+    actual_credit = sum(item.credit for item in analysis.all_transactions)
+    actual_debit = sum(item.debit for item in analysis.all_transactions)
 
     failed_totals: list[str] = []
     if (

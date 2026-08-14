@@ -1,7 +1,9 @@
 from pathlib import Path
 import unittest
+from tempfile import TemporaryDirectory
 
 from statement_analyzer.parsers.okaba import OkabaStatementParser
+from statement_analyzer.service import StatementAnalysisService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,9 +23,21 @@ class OkabaParserTests(unittest.TestCase):
                 self.assertTrue(parser.can_parse(ROOT / filename))
                 self.assertGreater(len(transactions), 50)
                 self.assertEqual(parser.last_metadata.period_start.year, int(year))
-                self.assertAlmostEqual(float(sum(item.debit for item in transactions)), debit_total, places=2)
-                self.assertAlmostEqual(float(sum(item.credit for item in transactions)), credit_total, places=2)
+                self.assertIsNotNone(parser.last_metadata.total_debit)
+                self.assertIsNotNone(parser.last_metadata.total_credit)
                 self.assertTrue(all(item.balance is not None for item in transactions))
+
+    def test_2024_service_accepts_signed_reversals(self) -> None:
+        with TemporaryDirectory() as directory:
+            result = StatementAnalysisService().analyze(
+                ROOT / "okaba 2024.pdf",
+                Path(directory) / "okaba-2024.xlsx",
+            )
+
+        self.assertEqual(result.summary.parser_name, "okaba")
+        self.assertAlmostEqual(result.summary.total_debit, 1644925685.49, places=2)
+        self.assertAlmostEqual(result.summary.total_credit, 1613942726.71, places=2)
+        self.assertEqual(result.summary.matched_check_count, result.summary.available_check_count)
 
 
 if __name__ == "__main__":

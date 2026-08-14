@@ -61,6 +61,7 @@ class StatementMetadata:
     total_debit: Decimal | None = None
     total_credit: Decimal | None = None
     closing_balance: Decimal | None = None
+    blocked_amount: Decimal | None = None
     period_start: date | None = None
     period_end: date | None = None
 

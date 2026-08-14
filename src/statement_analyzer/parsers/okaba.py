@@ -64,6 +64,7 @@ class OkabaStatementParser(StatementParser):
             account_number=self._capture(text, r"Account\s+No\s+(\d+)"),
             currency=self._capture(text, r"Currency\s+([A-Z]{3})"),
             opening_balance=self._decimal(self._capture(text, r"Opening\s+Balance\s+(-?[\d,.]+)")),
+            blocked_amount=self._decimal(self._capture(text, r"Blocked\s+Amt\s+(-?[\d,.]+)")),
             total_debit=self._decimal(self._capture(text, r"Total\s+Withdrawals\s+([\d,.]+)")),
             total_credit=self._decimal(self._capture(text, r"Total\s+Deposits\s+([\d,.]+)")),
             closing_balance=self._decimal(self._capture(text, r"Closing\s+Balance\s+(-?[\d,.]+)")),
